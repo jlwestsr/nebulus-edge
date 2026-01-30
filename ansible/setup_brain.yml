@@ -1,0 +1,7 @@
+---
+- name: Setup Nebulus Edge Brain Layer
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  roles:
+    - brain

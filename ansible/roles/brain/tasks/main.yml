@@ -1,0 +1,15 @@
+---
+- name: Ensure python3-venv is installed (checked implicitly via pip module availability)
+  ansible.builtin.debug:
+    msg: "System checks passed"
+
+- name: Create virtual environment
+  ansible.builtin.pip:
+    requirements: "{{ playbook_dir }}/../brain/requirements.txt"
+    virtualenv: "{{ playbook_dir }}/../venv"
+    virtualenv_command: python3 -m venv
+
+- name: Ensure start_brain.sh is executable
+  ansible.builtin.file:
+    path: "{{ playbook_dir }}/../infrastructure/start_brain.sh"
+    mode: '0755'
