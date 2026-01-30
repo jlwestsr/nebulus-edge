@@ -11,7 +11,8 @@ These rules are critical for any AI agent "loading" this project. They encode th
 - **Infrastructure as Code (IaC) First**:
     - **MANDATE**: Any change that modifies the Operating System (e.g., installing packages, changing permissions, creating users/services, modifying config files) **MUST** be performed via Ansible.
     - **No Manual Shell Scripts**: Do not write shell scripts (`.sh`) for persistent system configuration. Use shell scripts only for process startup (e.g., `start_server.sh`) or development conveniences.
-    - **Idempotency**: All Ansible tasks must be idempotent (safe to run multiple times).## 3. Testing & Quality Assurance
+    - **Idempotency**: All Ansible tasks must be idempotent (safe to run multiple times).
+    - **Venv Execution**: Ansible **MUST** be executed from the project's local virtual environment (`venv/bin/ansible-playbook`) to ensure consistent dependencies and Python version.## 3. Testing & Quality Assurance
 - **Mandatory Unit Tests**: ALL changes must be verified in `tests/`.
 
 - **Pre-Commit Verification**: Run `./scripts/run_tests.sh` (or `pytest`) before marking any task as complete.

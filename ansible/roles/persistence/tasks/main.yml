@@ -1,0 +1,18 @@
+---
+- name: Ensure Node.js is installed
+  # Simple check - in a real production env we might use nvm or package manager
+  ansible.builtin.shell: node -v
+  register: node_check
+  ignore_errors: true
+  changed_when: false
+
+- name: Fail if Node is missing
+  ansible.builtin.fail:
+    msg: "Node.js is required but not found. Please install Node.js."
+  when: node_check.rc != 0
+
+- name: Install PM2 globally
+  community.general.npm:
+    name: pm2
+    global: true
+    state: present
