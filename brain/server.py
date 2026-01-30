@@ -71,14 +71,18 @@ def chat_completions(request: ChatCompletionRequest):
     
     prompt += "<|im_start|>assistant\n"
 
-    response_text = generate(
-        model_instance, 
-        tokenizer_instance, 
-        prompt=prompt, 
-        max_tokens=request.max_tokens, 
-        temp=request.temperature, 
-        verbose=True
-    )
+    try:
+        response_text = generate(
+            model_instance, 
+            tokenizer_instance, 
+            prompt=prompt, 
+            max_tokens=request.max_tokens, 
+            verbose=True
+        )
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=500, detail=str(e))
 
     return {
         "id": "chatcmpl-" + str(int(time.time())),
