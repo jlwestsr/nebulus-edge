@@ -11,6 +11,20 @@
             "env": {
                 "NODE_ENV": "production"
             }
+        },
+        {
+            "name": "nebulus-intelligence",
+            "script": "./infrastructure/start_intelligence.sh",
+            "interpreter": "none",
+            "mode": "fork",
+            "autorestart": true,
+            "watch": false,
+            "max_memory_restart": "2G",
+            "env": {
+                "NODE_ENV": "production",
+                "BRAIN_URL": "http://localhost:8080",
+                "INTELLIGENCE_TEMPLATE": "dealership"
+            }
         }
     ]
 }
