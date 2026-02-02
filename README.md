@@ -2,6 +2,9 @@
 
 A privacy-first AI appliance for small businesses handling sensitive data. Run powerful local LLMs on Apple Silicon with a turnkey, on-premise solution.
 
+> **Platform:** macOS only (Apple Silicon required)
+> **Target Hardware:** Mac mini M4 Pro with 48GB+ unified memory
+
 ## Overview
 
 Nebulus Edge is designed for professionals who need AI capabilities but cannot send data to the cloud:
@@ -37,14 +40,31 @@ Nebulus Edge is designed for professionals who need AI capabilities but cannot s
 | `qwen2.5-coder-32b` | Full 32B parameter model |
 | `llama3.1-8b` | Lightweight 8B model |
 
-## Prerequisites
+## System Requirements
 
-- **Hardware:** Mac mini with Apple Silicon (M1/M2/M3/M4), 48GB+ RAM recommended
-- **Software:**
-  - macOS 14+ (Sonoma or later)
-  - Python 3.10+
-  - Docker Desktop
-  - Node.js 18+ (for PM2)
+> **This project is designed exclusively for macOS on Apple Silicon.**
+> It uses [MLX](https://github.com/ml-explore/mlx), Apple's machine learning framework optimized for Apple Silicon's unified memory architecture.
+
+### Hardware Requirements
+
+| Spec | Minimum | Recommended |
+|------|---------|-------------|
+| **Chip** | Apple M1 | Apple M4 Pro |
+| **Unified Memory** | 24GB | 48GB+ |
+| **Storage** | 50GB free | 100GB+ SSD |
+| **Form Factor** | Any Mac with Apple Silicon | Mac mini (headless deployment) |
+
+**Memory guidance by model:**
+- `llama3.1-8b` (4-bit): ~6GB RAM
+- `qwen3-coder-30b` (4-bit): ~18GB RAM
+- `qwen2.5-coder-32b` (4-bit): ~20GB RAM
+
+### Software Requirements
+
+- **macOS 14+** (Sonoma or later)
+- **Python 3.10+**
+- **Docker Desktop** (for Open WebUI)
+- **Node.js 18+** (for PM2 process manager)
 
 ## Installation
 
