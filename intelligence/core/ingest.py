@@ -4,7 +4,7 @@ import sqlite3
 from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Union
 
 import pandas as pd
 
@@ -75,7 +75,7 @@ class DataIngestor:
 
     def ingest_csv(
         self,
-        csv_content: bytes | str,
+        csv_content: Union[bytes, str],
         table_name: str,
         primary_key_hint: Optional[str] = None,
     ) -> IngestResult:
