@@ -63,9 +63,39 @@ def load_model_by_name(model_key: str):
     print(f"Model {model_key} loaded successfully.")
 
 
+def _warmup_model():
+    """Run a minimal generation to warm up the model and eliminate cold start latency."""
+    if not model_instance or not tokenizer_instance:
+        print("Warning: Cannot warm up - model not loaded")
+        return
+
+    print("Warming up model...")
+    warmup_messages = [{"role": "user", "content": "Hi"}]
+
+    if hasattr(tokenizer_instance, "apply_chat_template"):
+        warmup_prompt = tokenizer_instance.apply_chat_template(
+            warmup_messages,
+            tokenize=False,
+            add_generation_prompt=True,
+        )
+    else:
+        warmup_prompt = "Hi"
+
+    # Generate a single token to trigger all lazy initialization
+    generate(
+        model_instance,
+        tokenizer_instance,
+        prompt=warmup_prompt,
+        max_tokens=1,
+        verbose=False,
+    )
+    print("Model warmed up and ready.")
+
+
 @app.on_event("startup")
 def startup_event():
     load_model_by_name("default-model")
+    _warmup_model()
 
 
 @app.get("/")
@@ -97,8 +127,6 @@ def list_models():
 
 @app.post("/v1/chat/completions")
 def chat_completions(request: ChatCompletionRequest):
-    global model_instance, tokenizer_instance
-
     # Check if we need to switch models
     requested_model = request.model.lower()
     if requested_model not in MODELS:
