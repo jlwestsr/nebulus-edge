@@ -11,6 +11,7 @@ from pydantic import BaseModel
 from intelligence.core.knowledge import KnowledgeManager
 from intelligence.core.scoring import SaleScorer
 from intelligence.core.sql_engine import SQLEngine, UnsafeQueryError
+from intelligence.core.vector_engine import VectorEngine
 from intelligence.templates import load_template
 
 router = APIRouter(prefix="/query", tags=["query"])
@@ -52,6 +53,12 @@ def _get_sql_engine(request: Request) -> SQLEngine:
     db_path = request.app.state.db_path / "main.db"
     brain_url = request.app.state.brain_url
     return SQLEngine(db_path, brain_url)
+
+
+def _get_vector_engine(request: Request) -> VectorEngine:
+    """Get a VectorEngine instance."""
+    vector_path = request.app.state.vector_path
+    return VectorEngine(vector_path)
 
 
 @router.post("/ask", response_model=IntelligenceResponse)
@@ -130,25 +137,77 @@ async def execute_sql(
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
 
 
+class SimilarityRequest(BaseModel):
+    """Request for similarity search."""
+
+    table_name: str
+    query: Optional[str] = None
+    record_id: Optional[str] = None
+    limit: int = 10
+
+
+class SimilarRecordResponse(BaseModel):
+    """A similar record with similarity score."""
+
+    id: str
+    record: Dict[str, Any]
+    similarity: float
+
+
 @router.post("/similar")
 async def find_similar(
     request: Request,
-    record_id: str,
-    table_name: str,
-    limit: int = 10,
-) -> list[dict]:
+    body: SimilarityRequest,
+) -> List[SimilarRecordResponse]:
     """
-    Find records similar to a given example.
+    Find records similar to a query or an existing record.
+
+    Provide either:
+    - query: Natural language description to match against
+    - record_id: ID of an existing record to find similar ones
 
     Use cases:
-    - "Find sales like this one"
-    - "Find vehicles similar to VIN X"
+    - "Find sales like this one" (by record_id)
+    - "Find vehicles similar to: low mileage SUV under $30k" (by query)
     """
-    # TODO: Implement with VectorEngine
-    raise HTTPException(
-        status_code=501,
-        detail="Similarity search not yet implemented",
-    )
+    vector_engine = _get_vector_engine(request)
+
+    # Check if collection exists
+    if body.table_name not in vector_engine.list_collections():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No embeddings found for table '{body.table_name}'. "
+            "Re-upload the CSV to generate embeddings.",
+        )
+
+    if body.record_id:
+        # Search by example record
+        results = vector_engine.search_by_example(
+            table_name=body.table_name,
+            record_id=body.record_id,
+            n_results=body.limit,
+        )
+    elif body.query:
+        # Search by natural language query
+        results = vector_engine.search_similar(
+            table_name=body.table_name,
+            query=body.query,
+            n_results=body.limit,
+        )
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="Either 'query' or 'record_id' must be provided",
+        )
+
+    return [
+        SimilarRecordResponse(
+            id=r.id,
+            record=r.record,
+            similarity=r.similarity,
+        )
+        for r in results
+    ]
 
 
 class ScoreRequest(BaseModel):
@@ -256,3 +315,59 @@ async def score_records(
             status_code=500,
             detail=f"Scoring failed: {str(e)}",
         )
+
+
+class PatternRequest(BaseModel):
+    """Request to find patterns in records."""
+
+    table_name: str
+    record_ids: List[str]
+
+
+class PatternResponse(BaseModel):
+    """Response with detected patterns."""
+
+    sample_count: int
+    frequent_values: Dict[str, Dict[str, int]]
+    numeric_ranges: Dict[str, Dict[str, float]]
+
+
+@router.post("/patterns")
+async def find_patterns(
+    request: Request,
+    body: PatternRequest,
+) -> PatternResponse:
+    """
+    Analyze what a set of records have in common.
+
+    Useful for questions like:
+    - "What do our best sales have in common?"
+    - "What patterns exist in high-margin vehicles?"
+
+    Provide IDs of "good" example records to analyze.
+    """
+    vector_engine = _get_vector_engine(request)
+
+    if body.table_name not in vector_engine.list_collections():
+        raise HTTPException(
+            status_code=404,
+            detail=f"No embeddings found for table '{body.table_name}'. "
+            "Re-upload the CSV to generate embeddings.",
+        )
+
+    if not body.record_ids:
+        raise HTTPException(
+            status_code=400,
+            detail="At least one record_id must be provided",
+        )
+
+    result = vector_engine.find_patterns(
+        table_name=body.table_name,
+        positive_ids=body.record_ids,
+    )
+
+    return PatternResponse(
+        sample_count=result.sample_count,
+        frequent_values=result.frequent_values,
+        numeric_ranges=result.numeric_ranges,
+    )

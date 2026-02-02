@@ -10,6 +10,7 @@ from intelligence.core.knowledge import (
 )
 from intelligence.core.scoring import SaleScorer, ScoredRecord
 from intelligence.core.sql_engine import QueryResult, SQLEngine, UnsafeQueryError
+from intelligence.core.vector_engine import PatternResult, SimilarRecord, VectorEngine
 
 __all__ = [
     "DataIngestor",
@@ -24,4 +25,7 @@ __all__ = [
     "Metric",
     "SaleScorer",
     "ScoredRecord",
+    "VectorEngine",
+    "SimilarRecord",
+    "PatternResult",
 ]

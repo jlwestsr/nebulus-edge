@@ -1,12 +1,17 @@
 """CSV ingestion with schema inference and primary key detection."""
 
+from __future__ import annotations
+
 import sqlite3
 from dataclasses import dataclass, field
 from io import StringIO
 from pathlib import Path
-from typing import Optional, Union
+from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
+
+if TYPE_CHECKING:
+    from intelligence.core.vector_engine import VectorEngine
 
 
 @dataclass
@@ -19,6 +24,7 @@ class IngestResult:
     column_types: dict[str, str]
     primary_key: Optional[str] = None
     warnings: list[str] = field(default_factory=list)
+    records_embedded: int = 0
 
 
 class DataIngestor:
@@ -54,16 +60,23 @@ class DataIngestor:
         "generic": ["id", "ID", "Id", "key", "KEY"],
     }
 
-    def __init__(self, db_path: Path, template: str = "generic"):
+    def __init__(
+        self,
+        db_path: Path,
+        template: str = "generic",
+        vector_engine: Optional[VectorEngine] = None,
+    ):
         """
         Initialize the data ingestor.
 
         Args:
             db_path: Path to the SQLite database file
             template: Vertical template name for primary key hints
+            vector_engine: Optional VectorEngine for embedding records
         """
         self.db_path = db_path
         self.template = template
+        self.vector_engine = vector_engine
         self._ensure_db()
 
     def _ensure_db(self) -> None:
@@ -73,7 +86,7 @@ class DataIngestor:
         conn = sqlite3.connect(self.db_path)
         conn.close()
 
-    def ingest_csv(
+    def ingest_csv(  # noqa: C901
         self,
         csv_content: Union[bytes, str],
         table_name: str,
@@ -135,6 +148,27 @@ class DataIngestor:
         finally:
             conn.close()
 
+        # Embed records for semantic search if vector engine available
+        records_embedded = 0
+        if self.vector_engine:
+            try:
+                records = df.to_dict(orient="records")
+                # Use primary key or create synthetic ID
+                id_field = primary_key or "id"
+                if id_field not in df.columns:
+                    # Add row index as ID
+                    for i, record in enumerate(records):
+                        record["_row_id"] = str(i)
+                    id_field = "_row_id"
+
+                records_embedded = self.vector_engine.embed_records(
+                    table_name=table_name,
+                    records=records,
+                    id_field=id_field,
+                )
+            except Exception as e:
+                warnings.append(f"Embedding failed: {e}")
+
         return IngestResult(
             table_name=table_name,
             rows_imported=rows_imported,
@@ -142,6 +176,7 @@ class DataIngestor:
             column_types=column_types,
             primary_key=primary_key,
             warnings=warnings,
+            records_embedded=records_embedded,
         )
 
     def _clean_column_name(self, name: str) -> str:
@@ -281,7 +316,7 @@ class DataIngestor:
 
     def delete_table(self, table_name: str) -> bool:
         """
-        Delete a table from the database.
+        Delete a table from the database and its vector embeddings.
 
         Returns:
             True if deleted, False if table didn't exist
@@ -297,6 +332,11 @@ class DataIngestor:
 
             conn.execute(f"DROP TABLE {table_name}")
             conn.commit()
+
+            # Also delete vector collection if engine available
+            if self.vector_engine:
+                self.vector_engine.delete_collection(table_name)
+
             return True
         finally:
             conn.close()

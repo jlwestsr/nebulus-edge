@@ -10,6 +10,7 @@ from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
 from intelligence.core.ingest import DataIngestor
+from intelligence.core.vector_engine import VectorEngine
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -32,6 +33,7 @@ class IngestResult(BaseModel):
     column_types: dict[str, str]
     primary_key: Optional[str] = None
     warnings: list[str] = []
+    records_embedded: int = 0
 
 
 class SchemaInfo(BaseModel):
@@ -44,10 +46,15 @@ class SchemaInfo(BaseModel):
 
 
 def _get_ingestor(request: Request) -> DataIngestor:
-    """Get or create a DataIngestor instance."""
+    """Get or create a DataIngestor instance with vector support."""
     db_path = request.app.state.db_path / "main.db"
     template = request.app.state.template
-    return DataIngestor(db_path, template)
+    vector_path = request.app.state.vector_path
+
+    # Create vector engine for semantic search
+    vector_engine = VectorEngine(vector_path)
+
+    return DataIngestor(db_path, template, vector_engine)
 
 
 @router.post("/upload", response_model=IngestResult)
@@ -93,6 +100,7 @@ async def upload_csv(
         column_types=result.column_types,
         primary_key=result.primary_key,
         warnings=result.warnings,
+        records_embedded=result.records_embedded,
     )
 
 
