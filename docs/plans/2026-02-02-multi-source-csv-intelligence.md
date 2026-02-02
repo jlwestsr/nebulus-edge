@@ -1,8 +1,9 @@
 # Multi-Source CSV Intelligence - Design Discussion
 
 **Date:** 2026-02-02
-**Status:** Awaiting user feedback from end customer (sales director)
-**MVP Feature:** Multi-source data correlation using VIN as primary key
+**Updated:** 2026-02-02
+**Status:** Customer feedback received - Hybrid approach selected
+**MVP Feature:** Multi-source data correlation with domain knowledge for inventory strategy
 
 ## Product Vision
 
@@ -12,15 +13,36 @@
 - Key value: On-premise, turnkey, customer owns hardware
 - Business model: Sell configured hardware + software
 
-### Initial Use Case: Car Dealership
-- Sales director needs to analyze data from multiple sources (inventory, service records, sales)
+### Initial Use Case: Car Dealership (Modern Motorcars)
+- Sales director needs strategic inventory analysis, not just data queries
+- Multiple data sources: inventory, service records, sales history, financing, warranties
 - All sources share VIN as primary key
 - Contains PII - must stay on-premise
-- Need to answer cross-source questions like "Which vehicles serviced 3+ times are still on lot?"
+- **Primary Question**: "Based on historical sales, help me identify the ideal used vehicle inventory"
+
+## Customer Feedback (Received)
+
+### Q1: Speed & Accuracy vs. Flexibility?
+**Answer:** "Both equally - I need both capabilities"
+
+### Q2: Hardest question you'd ask?
+**Answer:** "Based upon our historical sales, help me identify the ideal used vehicle inventory" (Inventory Strategy)
+
+### Domain Knowledge Requirements
+The agent needs to understand variables that contribute to a "perfect sale" at Modern Motorcars:
+- **Local buyer** - Higher likelihood of service revenue, referrals
+- **Trade-in** - Margin opportunity, inventory acquisition
+- **Financing** - Dealer profit from financing arrangements
+- **Warranty purchase** - Additional revenue stream
+- **Profit margins** - Per-vehicle profitability
+- **Age of inventory** - Carrying costs, depreciation risk
+- **Reconditioning spend** - Investment vs. sale price delta
+
+---
 
 ## Architecture Approaches Considered
 
-### Approach 1: SQL Database + Natural Language to SQL ⭐ (Recommended)
+### Approach 1: SQL Database + Natural Language to SQL
 
 **Implementation:**
 - User uploads CSVs → Import into SQLite database
@@ -37,12 +59,7 @@
 **Cons:**
 - Requires schema management (can be automated)
 - SQL generation can fail on ambiguous questions
-
-**Tech Stack:**
-- SQLite for data storage
-- Text-to-SQL model or prompt engineering with Qwen3-Coder-30B
-- Schema introspection for auto-discovery
-- Query validation and error handling
+- **Cannot handle strategic/analytical questions** like "what's ideal inventory"
 
 ---
 
@@ -56,6 +73,7 @@
 **Pros:**
 - More flexible for unstructured questions
 - Works well with current LLM setup
+- Can find patterns and similarities
 
 **Cons:**
 - Struggles with complex joins or exact filters
@@ -64,62 +82,148 @@
 
 ---
 
-### Approach 3: Hybrid (SQL + RAG)
+### Approach 3: Hybrid (SQL + RAG + Domain Knowledge) ⭐ SELECTED
 
 **Implementation:**
-- Structured data in SQLite, metadata in vector DB
-- LLM decides which system to query based on question type
+- Structured data in SQLite for precise queries
+- Vector DB for semantic search and pattern matching
+- **Domain Knowledge Layer** for business rules and priorities
+- LLM orchestrates all three based on question type
 
 **Pros:**
-- Best of both worlds
-- Handles both structured queries and semantic search
+- Best of both worlds - precision AND flexibility
+- Can answer strategic questions requiring reasoning
+- Domain knowledge makes recommendations business-relevant
+- Transparent: can show SQL queries AND reasoning
 
 **Cons:**
-- 2x the complexity
-- Overkill for MVP
-- Two systems to maintain
+- Higher complexity (justified by requirements)
+- Three systems to maintain
+- Requires domain knowledge capture process
 
-## Next Steps
+---
 
-### Awaiting Customer Feedback
-Email sent to sales director (end user) asking:
-1. Speed & Accuracy vs. Flexibility preference
-2. Real example of hardest question they'd ask
+## Selected Architecture: Hybrid with Domain Knowledge
 
-### Implementation Phases (Post-Feedback)
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      User Question                           │
+│  "What's our ideal used vehicle inventory?"                 │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                 Question Classifier (LLM)                    │
+│  Determines: SQL query? Semantic search? Strategic analysis? │
+└─────────────────────────────────────────────────────────────┘
+                              │
+          ┌───────────────────┼───────────────────┐
+          ▼                   ▼                   ▼
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────────┐
+│  SQL Engine     │ │ Semantic Search │ │ Domain Knowledge    │
+│  (SQLite)       │ │ (ChromaDB)      │ │ Layer               │
+│                 │ │                 │ │                     │
+│ - Exact queries │ │ - Similar sales │ │ - "Perfect sale"    │
+│ - Aggregations  │ │ - Patterns      │ │   variables         │
+│ - Joins on VIN  │ │ - Anomalies     │ │ - Business rules    │
+│ - Inventory age │ │ - Market comps  │ │ - Weights/priorities│
+└─────────────────┘ └─────────────────┘ └─────────────────────┘
+          │                   │                   │
+          └───────────────────┼───────────────────┘
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  LLM Reasoning Layer                         │
+│  Synthesizes data + patterns + business rules into          │
+│  actionable strategic recommendations                        │
+└─────────────────────────────────────────────────────────────┘
+                              │
+                              ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      Response                                │
+│  "Based on your sales data, ideal inventory characteristics: │
+│   - SUVs under $35k (67% of profitable sales)               │
+│   - < 60 days old (avg margin 12% vs 4% after 90 days)      │
+│   - Local trade-ins (2.3x service revenue vs auction buys)  │
+│   [Show supporting data] [Show reasoning]"                   │
+└─────────────────────────────────────────────────────────────┘
+```
 
-**Phase 1: Core CSV Intelligence (MVP)**
+---
+
+## Domain Knowledge Layer Design
+
+### Purpose
+Capture the sales director's business expertise so the AI can reason about "what's good" not just "what is."
+
+### Knowledge Categories
+
+**1. Sale Quality Factors** (weighted scoring)
+| Factor | Description | Weight |
+|--------|-------------|--------|
+| Local buyer | Customer within N miles | +15 |
+| Trade-in | Vehicle accepted as trade | +20 |
+| Financing | Dealer-arranged financing | +25 |
+| Warranty | Extended warranty sold | +15 |
+| Quick turn | Sold within 30 days | +10 |
+| Above-margin | Profit > target margin | +15 |
+
+**2. Inventory Health Metrics**
+- Days on lot (target: < 45 days)
+- Reconditioning ROI (spend vs. margin impact)
+- Category mix (SUV/Sedan/Truck ratios)
+- Price band distribution
+
+**3. Business Rules**
+- "Never stock vehicles > 100k miles"
+- "Prioritize trade-ins over auction"
+- "Target 15% gross margin on used"
+
+### Knowledge Capture Methods
+1. **Structured interview** - One-time setup conversation
+2. **Document upload** - Business rules, SOPs, pricing guides
+3. **Feedback loop** - "This recommendation was good/bad" learning
+
+---
+
+## Implementation Phases (Revised)
+
+### Phase 1: Foundation (MVP)
 - CSV upload interface in Open WebUI
 - SQLite import with VIN auto-detection
 - Basic natural language to SQL
 - Query execution and result formatting
+- **Deliverable**: Answer "How many vehicles over 60 days on lot?"
 
-**Phase 2: Multi-Source Correlation**
-- Auto-detect relationships across tables
-- Schema visualization
-- Join optimization
+### Phase 2: Domain Knowledge Layer
+- Knowledge capture interface (structured Q&A)
+- Business rules storage (JSON/YAML)
+- Sale quality scoring system
+- **Deliverable**: Score historical sales by "quality"
 
-**Phase 3: Security & Privacy**
+### Phase 3: Semantic Search
+- ChromaDB integration for vector storage
+- Embed sales records for pattern matching
+- Similar vehicle/sale finder
+- **Deliverable**: "Find sales similar to this successful one"
+
+### Phase 4: Strategic Analysis
+- Question classifier (SQL vs semantic vs strategic)
+- Multi-source reasoning
+- Recommendation generation
+- **Deliverable**: "What's our ideal inventory?" with reasoning
+
+### Phase 5: Security & Privacy
 - PII detection and masking
 - Data encryption at rest
 - Audit logging
 - Access controls
 
-**Phase 4: Business Analytics**
-- Pre-built industry-specific queries
-- Scheduled reports
-- Alert system
+### Phase 6: Continuous Learning
+- Feedback capture on recommendations
+- Knowledge refinement from outcomes
+- Automated insight generation
 
-**Phase 5: Autonomous Agent**
-- Slack integration for remote monitoring
-- Scheduled analysis tasks
-- Proactive insights
-
-## Related Nebulus Projects
-
-- **Nebulus Prime**: Linux version (server/datacenter)
-- **Nebulus Gantry**: Custom web UI (Open WebUI fork)
-- **Nebulus Atom**: AI agent system (Claude Desktop inspired)
+---
 
 ## Technical Considerations
 
@@ -128,13 +232,25 @@ Email sent to sales director (end user) asking:
 - Body: Open WebUI (Docker)
 - Infrastructure: PM2 + Ansible
 
-### Additions Needed for CSV Intelligence
-- Database layer (SQLite initially, PostgreSQL for production?)
-- File upload handling
+### Additions Needed
+
+**Data Layer:**
+- SQLite for structured data
+- ChromaDB for vector embeddings
+- JSON/YAML for domain knowledge
+
+**Processing:**
 - CSV parsing and validation
 - Schema inference
 - Text-to-SQL engine
+- Embedding generation
 - Query sandbox for safety
+
+**New Components:**
+- Question classifier
+- Domain knowledge manager
+- Multi-source orchestrator
+- Recommendation synthesizer
 
 ### Security Requirements
 - No data leaves the Mac mini
@@ -143,25 +259,61 @@ Email sent to sales director (end user) asking:
 - Query result sanitization
 - Audit trail
 
+---
+
 ## Open Questions
 
-1. How do we handle schema conflicts across CSVs?
-2. What level of SQL complexity do we support?
-3. How do we validate generated SQL is safe?
-4. Do we need a visual query builder as fallback?
-5. How do we handle data updates (new CSVs)?
+1. **Knowledge capture UX** - How does the sales director "teach" the system?
+   - Wizard-style interview?
+   - Upload existing documents?
+   - Natural conversation?
+
+2. **What data sources exist?**
+   - DMS exports (which system?)
+   - Manual spreadsheets?
+   - Update frequency?
+
+3. **How to validate recommendations?**
+   - Backtest against historical outcomes?
+   - A/B test suggestions?
+
+4. **"Ideal" definition** - Is it:
+   - Fastest turn rate?
+   - Highest margin?
+   - Balanced portfolio?
+   - All of the above with weights?
+
+5. **Schema conflicts** - How to handle mismatched CSVs?
+
+6. **Embedding model** - Use Qwen for embeddings or separate model?
+
+---
 
 ## Success Criteria
 
-**For MVP:**
+**For MVP (Phase 1):**
 - Upload 3+ CSVs with VIN column
 - Ask natural language question requiring cross-source join
 - Get accurate results in <5 seconds
 - Results are verifiable (show SQL)
 - No data leaves the box
 
+**For Strategic Analysis (Phase 4):**
+- Ask "What's our ideal inventory?"
+- Get actionable recommendations with reasoning
+- Recommendations align with captured business rules
+- Sales director trusts and uses insights weekly
+
 **For Product:**
 - Non-technical user can operate without training
 - Handles real-world messy CSV data
 - Passes security audit for PII handling
-- Brother (sales director) uses it daily
+- Sales director uses it daily for decisions
+
+---
+
+## Related Nebulus Projects
+
+- **Nebulus Prime**: Linux version (server/datacenter)
+- **Nebulus Gantry**: Custom web UI (Open WebUI fork)
+- **Nebulus Atom**: AI agent system (Claude Desktop inspired)
