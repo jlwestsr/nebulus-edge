@@ -1,42 +1,231 @@
-# ai_project
+# Nebulus Edge
 
-This project was forged using the **Forge AI-Native Scaffolder**.
+A privacy-first AI appliance for small businesses handling sensitive data. Run powerful local LLMs on Apple Silicon with a turnkey, on-premise solution.
 
-## 🚀 Getting Started
+## Overview
 
-Instructions to get the project up and running on your local machine.
+Nebulus Edge is designed for professionals who need AI capabilities but cannot send data to the cloud:
+- **Car dealerships** analyzing inventory and sales
+- **Medical practices** reviewing patient data
+- **Law firms** processing case documents
+- **Accountants** examining financial records
 
-### Prerequisites
+**Key Value Proposition:** Customer owns the hardware. Data never leaves the box.
 
-List the software and tools required to run this project.
+## Architecture
 
-```bash
-# Example
-# pip install -r requirements.txt
+```
+┌─────────────────┐    ┌─────────────────┐
+│   Body (UI)     │───▶│   Brain (LLM)   │
+│  Open WebUI     │    │  FastAPI + MLX  │
+│  Port 3000      │    │  Port 8080      │
+└─────────────────┘    └─────────────────┘
+       Docker                 PM2
 ```
 
-### Installation
+| Component | Description |
+|-----------|-------------|
+| **Brain** | FastAPI server running local LLMs via MLX (Apple Silicon optimized) |
+| **Body** | Open WebUI frontend served via Docker |
+| **Infrastructure** | PM2 process management + Ansible automation |
 
-1.  Clone the repository.
-2.  Install dependencies.
+## Available Models
+
+| Model | Description |
+|-------|-------------|
+| `qwen3-coder-30b` (default) | MoE model, 30B params / 3B active |
+| `qwen2.5-coder-32b` | Full 32B parameter model |
+| `llama3.1-8b` | Lightweight 8B model |
+
+## Prerequisites
+
+- **Hardware:** Mac mini with Apple Silicon (M1/M2/M3/M4), 48GB+ RAM recommended
+- **Software:**
+  - macOS 14+ (Sonoma or later)
+  - Python 3.10+
+  - Docker Desktop
+  - Node.js 18+ (for PM2)
+
+## Installation
+
+### 1. Clone the Repository
+
+```bash
+git clone https://github.com/jlwestsr/nebulus-edge.git
+cd nebulus-edge
+```
+
+### 2. Create Virtual Environment
+
+```bash
+python3 -m venv venv
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+pip install -r brain/requirements.txt
+pip install -r requirements-dev.txt  # For development
+```
+
+### 4. Run Ansible Setup
+
+```bash
+make setup
+# Or manually:
+venv/bin/ansible-playbook ansible/setup.yml
+```
+
+### 5. Start the Stack
+
+```bash
+make up
+```
+
+This starts:
+- Brain (LLM server) on port 8080
+- Body (Open WebUI) on port 3000
 
 ## Usage
 
-Provide instructions and examples for using the project.
+### Access the UI
+
+Open http://localhost:3000 in your browser.
+
+### API Endpoints
+
+The Brain exposes an OpenAI-compatible API:
 
 ```bash
-# Example usage command
+# Health check
+curl http://localhost:8080/
+
+# List models
+curl http://localhost:8080/v1/models
+
+# Chat completion
+curl -X POST http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{
+    "model": "qwen3-coder-30b",
+    "messages": [{"role": "user", "content": "Hello!"}],
+    "max_tokens": 100
+  }'
 ```
 
-## Features
+## Project Structure
 
--   Feature 1
--   Feature 2
+```
+nebulus-edge/
+├── brain/                  # LLM server (FastAPI + MLX)
+│   ├── server.py           # Main API server
+│   └── requirements.txt    # Brain-specific dependencies
+├── body/                   # Open WebUI configuration
+│   └── docker-compose.yml  # Docker setup
+├── infrastructure/         # Deployment configuration
+│   ├── pm2_config.json     # PM2 process config
+│   ├── start_brain.sh      # Brain startup script
+│   └── start_body.sh       # Body startup script
+├── ansible/                # Ansible playbooks and roles
+├── docs/                   # Documentation
+│   ├── AI_INSIGHTS.md      # Long-term memory for agents
+│   ├── features/           # Feature specifications
+│   └── plans/              # Design documents
+├── tests/                  # Test suite
+├── CLAUDE.md               # AI agent project context
+├── AI_DIRECTIVES.md        # Operational rules
+└── WORKFLOW.md             # Development workflow
+```
 
-## Contributing
+## Commands
 
-Pull requests are welcome. For major changes, please open an issue first to discuss what you would like to change.
+```bash
+# Start full stack
+make up
+
+# Stop everything
+make down
+
+# Run Ansible setup
+make setup
+
+# Run tests
+pytest
+
+# Start brain only (PM2)
+pm2 start infrastructure/pm2_config.json
+
+# Start body only (Docker)
+./infrastructure/start_body.sh
+
+# Check brain status
+pm2 status
+
+# View brain logs
+pm2 logs nebulus-brain
+```
+
+## Development
+
+### Git Workflow
+
+This project uses Gitflow-lite:
+- **Never commit directly to `main` or `develop`**
+- Feature branches are local only (`feat/`, `fix/`, `docs/`, `chore/`)
+- Merge to `develop` locally, then push only `develop`
+- Use Conventional Commits: `feat:`, `fix:`, `docs:`, `chore:`
+
+### Testing
+
+```bash
+# Run all tests
+pytest
+
+# Run with verbose output
+pytest -v
+
+# Run specific test file
+pytest tests/test_initial.py
+```
+
+### Linting
+
+```bash
+# Check code style
+flake8
+
+# Format code
+black .
+```
+
+## Roadmap
+
+- [x] Brain: Multi-model support with MLX
+- [x] Brain: Model warmup for fast first response
+- [x] Body: Open WebUI integration
+- [ ] Intelligence: Multi-source CSV data analysis
+- [ ] Intelligence: Domain knowledge layer
+- [ ] Intelligence: Strategic recommendations
+
+## Related Projects
+
+| Project | Description |
+|---------|-------------|
+| **Nebulus Prime** | Linux version (server/datacenter) |
+| **Nebulus Gantry** | Custom web UI (Open WebUI fork) |
+| **Nebulus Atom** | AI agent system |
 
 ## License
 
 [MIT](https://choosealicense.com/licenses/mit/)
+
+## Contributing
+
+1. Create a feature branch from `develop`
+2. Make your changes with tests
+3. Ensure `pytest` and `flake8` pass
+4. Submit a PR to `develop`
+
+For major changes, please open an issue first to discuss what you would like to change.
