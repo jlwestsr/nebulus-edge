@@ -1,5 +1,10 @@
 """Intelligence core modules."""
 
+from intelligence.core.classifier import (
+    ClassificationResult,
+    QueryType,
+    QuestionClassifier,
+)
 from intelligence.core.ingest import DataIngestor, IngestResult
 from intelligence.core.knowledge import (
     BusinessRule,
@@ -7,6 +12,10 @@ from intelligence.core.knowledge import (
     KnowledgeManager,
     Metric,
     ScoringFactor,
+)
+from intelligence.core.orchestrator import (
+    IntelligenceOrchestrator,
+    IntelligenceResponse,
 )
 from intelligence.core.scoring import SaleScorer, ScoredRecord
 from intelligence.core.sql_engine import QueryResult, SQLEngine, UnsafeQueryError
@@ -28,4 +37,9 @@ __all__ = [
     "VectorEngine",
     "SimilarRecord",
     "PatternResult",
+    "QuestionClassifier",
+    "ClassificationResult",
+    "QueryType",
+    "IntelligenceOrchestrator",
+    "IntelligenceResponse",
 ]

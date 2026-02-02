@@ -9,6 +9,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
 from intelligence.core.knowledge import KnowledgeManager
+from intelligence.core.orchestrator import IntelligenceOrchestrator
 from intelligence.core.scoring import SaleScorer
 from intelligence.core.sql_engine import SQLEngine, UnsafeQueryError
 from intelligence.core.vector_engine import VectorEngine
@@ -30,6 +31,8 @@ class IntelligenceResponse(BaseModel):
     supporting_data: Optional[list[dict]] = None
     reasoning: Optional[str] = None
     sql_used: Optional[str] = None
+    similar_records: Optional[list[dict]] = None
+    classification: Optional[str] = None
     confidence: float = 0.0
 
 
@@ -61,6 +64,31 @@ def _get_vector_engine(request: Request) -> VectorEngine:
     return VectorEngine(vector_path)
 
 
+def _get_orchestrator(request: Request) -> IntelligenceOrchestrator:
+    """Get an IntelligenceOrchestrator instance."""
+    db_path = request.app.state.db_path / "main.db"
+    vector_path = request.app.state.vector_path
+    knowledge_path = request.app.state.knowledge_path / "knowledge.json"
+    brain_url = request.app.state.brain_url
+    template_name = request.app.state.template
+
+    # Load template config
+    try:
+        template = load_template(template_name)
+        template_config = template.config
+    except Exception:
+        template_config = None
+
+    return IntelligenceOrchestrator(
+        db_path=db_path,
+        vector_path=vector_path,
+        knowledge_path=knowledge_path,
+        brain_url=brain_url,
+        template_config=template_config,
+        template_name=template_name,
+    )
+
+
 @router.post("/ask", response_model=IntelligenceResponse)
 async def ask_question(
     request: Request,
@@ -70,39 +98,32 @@ async def ask_question(
     Ask a natural language question about your data.
 
     The system automatically:
-    1. Converts the question to SQL using the Brain LLM
-    2. Executes the query
-    3. Explains the results in natural language
+    1. Classifies the question (SQL, semantic, strategic, or hybrid)
+    2. Gathers context from appropriate engines
+    3. Injects domain knowledge for strategic questions
+    4. Synthesizes a comprehensive answer
+
+    Handles all question types:
+    - Data queries: "How many vehicles over 60 days?"
+    - Similarity: "Find sales like this one"
+    - Strategic: "What's our ideal inventory?"
     """
-    sql_engine = _get_sql_engine(request)
+    orchestrator = _get_orchestrator(request)
 
     try:
-        # Convert question to SQL
-        sql = await sql_engine.natural_to_sql(body.question)
-
-        # Execute the SQL
-        result = sql_engine.execute(sql)
-
-        # Convert rows to list of dicts for supporting_data
-        supporting_data = None
-        if result.rows:
-            supporting_data = [
-                dict(zip(result.columns, row)) for row in result.rows[:20]
-            ]
-
-        # Get explanation from Brain
-        explanation = await sql_engine.explain_results(body.question, sql, result)
+        # Use simple rule-based classification for faster response
+        result = await orchestrator.ask(body.question, use_simple_classification=True)
 
         return IntelligenceResponse(
-            answer=explanation,
-            supporting_data=supporting_data,
-            reasoning=f"Executed SQL query against {result.row_count} matching rows.",
-            sql_used=sql,
-            confidence=0.85,
+            answer=result.answer,
+            supporting_data=result.supporting_data,
+            reasoning=result.reasoning,
+            sql_used=result.sql_used,
+            similar_records=result.similar_records,
+            classification=result.classification,
+            confidence=result.confidence,
         )
 
-    except UnsafeQueryError as e:
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
         return IntelligenceResponse(
             answer=f"I encountered an error processing your question: {str(e)}",
