@@ -27,7 +27,8 @@
 ```
 
 **Available Models** (in `brain/server.py`):
-- `qwen2.5-coder-32b` (default)
+- `qwen3-coder-30b` (default) - MoE model, 30B params / 3B active
+- `qwen2.5-coder-32b`
 - `llama3.1-8b`
 
 ## Critical Directives
