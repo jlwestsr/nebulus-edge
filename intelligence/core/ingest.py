@@ -10,6 +10,7 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
 
+from intelligence.core.pii import PIIDetector, PIIReport
 from intelligence.core.security import quote_identifier, validate_table_name
 
 if TYPE_CHECKING:
@@ -27,6 +28,9 @@ class IngestResult:
     primary_key: Optional[str] = None
     warnings: list[str] = field(default_factory=list)
     records_embedded: int = 0
+    pii_detected: bool = False
+    pii_columns: list[str] = field(default_factory=list)
+    pii_report: Optional[PIIReport] = None
 
 
 class DataIngestor:
@@ -93,6 +97,7 @@ class DataIngestor:
         csv_content: Union[bytes, str],
         table_name: str,
         primary_key_hint: Optional[str] = None,
+        scan_pii: bool = True,
     ) -> IngestResult:
         """
         Ingest CSV content into SQLite database.
@@ -171,6 +176,29 @@ class DataIngestor:
             except Exception as e:
                 warnings.append(f"Embedding failed: {e}")
 
+        # Scan for PII if requested
+        pii_detected = False
+        pii_columns: list[str] = []
+        pii_report: Optional[PIIReport] = None
+
+        if scan_pii:
+            try:
+                detector = PIIDetector()
+                records = df.to_dict(orient="records")
+                pii_report = detector.scan_records(records)
+
+                if pii_report.has_pii:
+                    pii_detected = True
+                    pii_columns = list(pii_report.pii_columns)
+                    warnings.append(
+                        f"PII DETECTED: {pii_report.records_with_pii} records "
+                        f"contain sensitive data in columns: {', '.join(pii_columns)}"
+                    )
+                    for pii_warning in pii_report.warnings:
+                        warnings.append(f"PII: {pii_warning}")
+            except Exception as e:
+                warnings.append(f"PII scan failed: {e}")
+
         return IngestResult(
             table_name=table_name,
             rows_imported=rows_imported,
@@ -179,6 +207,9 @@ class DataIngestor:
             primary_key=primary_key,
             warnings=warnings,
             records_embedded=records_embedded,
+            pii_detected=pii_detected,
+            pii_columns=pii_columns,
+            pii_report=pii_report,
         )
 
     def _clean_column_name(self, name: str) -> str:

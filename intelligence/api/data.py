@@ -24,6 +24,15 @@ class TableInfo(BaseModel):
     primary_key: Optional[str] = None
 
 
+class PIISummary(BaseModel):
+    """Summary of PII detection results."""
+
+    detected: bool = False
+    columns_with_pii: list[str] = []
+    records_affected: int = 0
+    types_found: list[str] = []
+
+
 class IngestResult(BaseModel):
     """Result of CSV ingestion."""
 
@@ -34,6 +43,7 @@ class IngestResult(BaseModel):
     primary_key: Optional[str] = None
     warnings: list[str] = []
     records_embedded: int = 0
+    pii: Optional[PIISummary] = None
 
 
 class SchemaInfo(BaseModel):
@@ -93,6 +103,16 @@ async def upload_csv(
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Ingestion failed: {e}")
 
+    # Build PII summary if detection was performed
+    pii_summary = None
+    if result.pii_report:
+        pii_summary = PIISummary(
+            detected=result.pii_detected,
+            columns_with_pii=result.pii_columns,
+            records_affected=result.pii_report.records_with_pii,
+            types_found=[t.value for t in result.pii_report.pii_by_type.keys()],
+        )
+
     return IngestResult(
         table_name=result.table_name,
         rows_imported=result.rows_imported,
@@ -101,6 +121,7 @@ async def upload_csv(
         primary_key=result.primary_key,
         warnings=result.warnings,
         records_embedded=result.records_embedded,
+        pii=pii_summary,
     )
 
 
