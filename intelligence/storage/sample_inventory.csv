@@ -1,0 +1,11 @@
+VIN,make,model,year,asking_price,days_on_lot,mileage,body_style,acquisition_source
+1HGCM82633A004352,Honda,Accord,2022,28500,15,32000,Sedan,trade-in
+2T1BURHE5JC123456,Toyota,Camry,2021,26900,45,41000,Sedan,auction
+5YJSA1E26MF123789,Tesla,Model 3,2023,38900,8,12000,Sedan,trade-in
+1FTFW1ET5EFA12345,Ford,F-150,2022,42500,62,28000,Truck,auction
+3GNAXUEV5NL234567,Chevrolet,Equinox,2023,31200,22,18000,SUV,trade-in
+WVWZZZ3CZWE567890,Volkswagen,Jetta,2021,21500,78,52000,Sedan,auction
+1G1YY22G965109876,Chevrolet,Corvette,2020,58900,35,24000,Coupe,trade-in
+5TFBY5F18JX345678,Toyota,Tundra,2022,44800,12,31000,Truck,trade-in
+JN1TBNT30Z0012345,Nissan,Altima,2023,27200,5,8000,Sedan,trade-in
+1FMCU9J94NUA98765,Ford,Escape,2022,29800,55,38000,SUV,auction
