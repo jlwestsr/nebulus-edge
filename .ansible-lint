@@ -1,0 +1,13 @@
+# .ansible-lint configuration
+exclude_paths:
+  - .github/
+  - docker-compose.yml
+  - body/
+  - mkdocs.yml
+  - .yamllint
+  - .pre-commit-config.yaml
+  - ansible/roles/persistence/  # Uses community.general.npm not in lint env
+
+# Warn only, don't fail on these
+warn_list:
+  - yaml[new-line-at-end-of-file]
