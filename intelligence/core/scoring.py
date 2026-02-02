@@ -6,6 +6,11 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from intelligence.core.knowledge import KnowledgeManager, ScoringFactor
+from intelligence.core.security import (
+    quote_identifier,
+    validate_sql_query,
+    validate_table_name,
+)
 
 
 @dataclass
@@ -106,28 +111,7 @@ class SaleScorer:
                     )
             return (0, f"{factor.name}: Did not meet threshold")
 
-        # Pattern: "column >= value" or "column > value"
-        if " >= " in calculation or " > " in calculation:
-            op = " >= " if " >= " in calculation else " > "
-            parts = calculation.split(op)
-            col_name = parts[0].strip()
-            threshold = float(parts[1].strip())
-
-            if col_name in record and record[col_name] is not None:
-                actual = float(record[col_name])
-                if op == " >= " and actual >= threshold:
-                    return (
-                        factor.weight,
-                        f"{factor.name}: {actual} (target: ≥{threshold})",
-                    )
-                elif op == " > " and actual > threshold:
-                    return (
-                        factor.weight,
-                        f"{factor.name}: {actual} (target: >{threshold})",
-                    )
-            return (0, f"{factor.name}: Did not meet threshold")
-
-        # Pattern: ratio comparison "a / b > value"
+        # Pattern: ratio comparison "a / b > value" (must check BEFORE simple > check)
         if " / " in calculation and " > " in calculation:
             # e.g., "gross_profit / sale_price > 0.15"
             parts = calculation.split(" > ")
@@ -152,6 +136,27 @@ class SaleScorer:
                         f"{factor.name}: {ratio:.1%} (target: >{threshold:.0%})",
                     )
             return (0, f"{factor.name}: Did not meet margin target")
+
+        # Pattern: "column >= value" or "column > value"
+        if " >= " in calculation or " > " in calculation:
+            op = " >= " if " >= " in calculation else " > "
+            parts = calculation.split(op)
+            col_name = parts[0].strip()
+            threshold = float(parts[1].strip())
+
+            if col_name in record and record[col_name] is not None:
+                actual = float(record[col_name])
+                if op == " >= " and actual >= threshold:
+                    return (
+                        factor.weight,
+                        f"{factor.name}: {actual} (target: ≥{threshold})",
+                    )
+                elif op == " > " and actual > threshold:
+                    return (
+                        factor.weight,
+                        f"{factor.name}: {actual} (target: >{threshold})",
+                    )
+            return (0, f"{factor.name}: Did not meet threshold")
 
         # Default: if we can't parse the calculation, don't score it
         return (0, f"{factor.name}: Unable to evaluate")
@@ -206,10 +211,14 @@ class SaleScorer:
         Returns:
             List of ScoredRecord objects
         """
+        # Validate table name to prevent SQL injection
+        validate_table_name(table_name)
+        quoted_name = quote_identifier(table_name)
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
-            cursor = conn.execute(f"SELECT * FROM {table_name}")
+            cursor = conn.execute(f"SELECT * FROM {quoted_name}")
             records = [dict(row) for row in cursor.fetchall()]
         finally:
             conn.close()
@@ -242,6 +251,9 @@ class SaleScorer:
         Returns:
             List of ScoredRecord objects
         """
+        # Validate SQL query to prevent injection attacks
+        validate_sql_query(sql, allow_write=False)
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:

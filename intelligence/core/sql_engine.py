@@ -8,6 +8,8 @@ from typing import Any, Optional
 
 import httpx
 
+from intelligence.core.security import quote_identifier, validate_sql_query
+
 
 @dataclass
 class QueryResult:
@@ -55,8 +57,11 @@ class SQLEngine:
             tables = [row[0] for row in cursor.fetchall()]
 
             for table in tables:
+                # Quote table name for safe SQL
+                quoted_table = quote_identifier(table)
+
                 # Get column info
-                cursor = conn.execute(f"PRAGMA table_info({table})")
+                cursor = conn.execute(f"PRAGMA table_info({quoted_table})")
                 columns = []
                 for row in cursor.fetchall():
                     columns.append(
@@ -69,11 +74,11 @@ class SQLEngine:
                     )
 
                 # Get sample values for context
-                cursor = conn.execute(f"SELECT * FROM {table} LIMIT 3")
+                cursor = conn.execute(f"SELECT * FROM {quoted_table} LIMIT 3")
                 sample_rows = cursor.fetchall()
 
                 # Get row count
-                cursor = conn.execute(f"SELECT COUNT(*) FROM {table}")
+                cursor = conn.execute(f"SELECT COUNT(*) FROM {quoted_table}")
                 row_count = cursor.fetchone()[0]
 
                 schema["tables"][table] = {
@@ -209,21 +214,12 @@ SQL Query:"""
         """
         sql = sql.strip()
 
-        # Safety check
+        # Safety check using centralized validation
         if safe:
-            sql_upper = sql.upper()
-            if not sql_upper.startswith("SELECT"):
-                raise UnsafeQueryError(
-                    "Only SELECT statements are allowed in safe mode"
-                )
-
-            # Check for dangerous patterns
-            dangerous = ["DROP", "DELETE", "INSERT", "UPDATE", "ALTER", "CREATE"]
-            for keyword in dangerous:
-                if keyword in sql_upper:
-                    raise UnsafeQueryError(
-                        f"Query contains forbidden keyword: {keyword}"
-                    )
+            try:
+                validate_sql_query(sql, allow_write=False)
+            except Exception as e:
+                raise UnsafeQueryError(str(e))
 
         conn = sqlite3.connect(self.db_path)
         try:

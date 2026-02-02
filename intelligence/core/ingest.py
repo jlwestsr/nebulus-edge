@@ -10,6 +10,8 @@ from typing import TYPE_CHECKING, Optional, Union
 
 import pandas as pd
 
+from intelligence.core.security import quote_identifier, validate_table_name
+
 if TYPE_CHECKING:
     from intelligence.core.vector_engine import VectorEngine
 
@@ -271,10 +273,14 @@ class DataIngestor:
         Returns:
             Dict with columns, types, and row count
         """
+        # Validate table name to prevent SQL injection
+        validate_table_name(table_name)
+        quoted_name = quote_identifier(table_name)
+
         conn = sqlite3.connect(self.db_path)
         try:
-            # Get column info
-            cursor = conn.execute(f"PRAGMA table_info({table_name})")
+            # Get column info (PRAGMA table_info requires unquoted name)
+            cursor = conn.execute(f"PRAGMA table_info({quoted_name})")
             columns = []
             types = {}
             for row in cursor.fetchall():
@@ -284,7 +290,7 @@ class DataIngestor:
                 types[col_name] = col_type
 
             # Get row count
-            cursor = conn.execute(f"SELECT COUNT(*) FROM {table_name}")
+            cursor = conn.execute(f"SELECT COUNT(*) FROM {quoted_name}")
             row_count = cursor.fetchone()[0]
 
             return {
@@ -303,11 +309,18 @@ class DataIngestor:
         Returns:
             List of row dicts
         """
+        # Validate table name to prevent SQL injection
+        validate_table_name(table_name)
+        quoted_name = quote_identifier(table_name)
+
+        # Ensure limit is reasonable
+        limit = max(1, min(limit, 1000))
+
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         try:
             cursor = conn.execute(
-                f"SELECT * FROM {table_name} LIMIT ?",
+                f"SELECT * FROM {quoted_name} LIMIT ?",
                 (limit,),
             )
             return [dict(row) for row in cursor.fetchall()]
@@ -321,6 +334,10 @@ class DataIngestor:
         Returns:
             True if deleted, False if table didn't exist
         """
+        # Validate table name to prevent SQL injection
+        validate_table_name(table_name)
+        quoted_name = quote_identifier(table_name)
+
         conn = sqlite3.connect(self.db_path)
         try:
             cursor = conn.execute(
@@ -330,7 +347,7 @@ class DataIngestor:
             if not cursor.fetchone():
                 return False
 
-            conn.execute(f"DROP TABLE {table_name}")
+            conn.execute(f"DROP TABLE {quoted_name}")
             conn.commit()
 
             # Also delete vector collection if engine available

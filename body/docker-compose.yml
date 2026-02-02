@@ -7,11 +7,13 @@ services:
     environment:
       - OPENAI_API_BASE_URL=http://host.docker.internal:8080/v1
       - ENABLE_OLLAMA_API=False
-      - DEFAULT_SYSTEM_PROMPT=You are Qwen3-Coder-30B, a coding-focused AI assistant designed to help with software development tasks.
+      - DEFAULT_SYSTEM_PROMPT=You are Qwen3-Coder-30B, a coding-focused AI assistant designed to help with software development tasks. You have access to business data analysis tools via Nebulus Intelligence.
+      - INTELLIGENCE_URL=http://host.docker.internal:8081
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:
       - open-webui:/app/backend/data
+      - ./functions:/app/backend/functions
     restart: unless-stopped
 
 volumes:
