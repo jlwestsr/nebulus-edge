@@ -12,7 +12,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from intelligence.api import data, query
+from intelligence.api import data, knowledge, query
 
 # Configuration
 BRAIN_URL = os.getenv("BRAIN_URL", "http://localhost:8080")
@@ -60,6 +60,7 @@ app = FastAPI(
 # Register routers
 app.include_router(data.router)
 app.include_router(query.router)
+app.include_router(knowledge.router)
 
 
 @app.get("/")

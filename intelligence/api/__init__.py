@@ -1,5 +1,5 @@
 """Intelligence API routers."""
 
-from intelligence.api import data, query
+from intelligence.api import data, knowledge, query
 
-__all__ = ["data", "query"]
+__all__ = ["data", "knowledge", "query"]

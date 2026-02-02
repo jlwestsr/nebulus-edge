@@ -75,7 +75,7 @@ scoring:
     local_buyer:
       description: "Buyer within 25 miles (higher service potential)"
       weight: 15
-      calculation: "buyer_distance_miles <= 25 OR buyer_zip matches local"
+      calculation: "buyer_distance_miles <= 25"
 
     trade_in:
       description: "Trade-in accepted (inventory acquisition + margin)"
