@@ -225,9 +225,9 @@ black .
 - [x] Brain: Multi-model support with MLX
 - [x] Brain: Model warmup for fast first response
 - [x] Body: Open WebUI integration
-- [ ] Intelligence: Multi-source CSV data analysis
-- [ ] Intelligence: Domain knowledge layer
-- [ ] Intelligence: Strategic recommendations
+- [x] Intelligence: Multi-source CSV data analysis
+- [x] Intelligence: Domain knowledge layer
+- [x] Intelligence: Strategic recommendations
 
 ## Related Projects
 
