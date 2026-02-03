@@ -12,7 +12,7 @@ from pathlib import Path
 import uvicorn
 from fastapi import FastAPI
 
-from intelligence.api import data, knowledge, query
+from intelligence.api import data, feedback, insights, knowledge, query
 
 # Configuration
 BRAIN_URL = os.getenv("BRAIN_URL", "http://localhost:8080")
@@ -21,6 +21,7 @@ STORAGE_PATH = Path(__file__).parent / "storage"
 DB_PATH = STORAGE_PATH / "databases"
 VECTOR_PATH = STORAGE_PATH / "vectors"
 KNOWLEDGE_PATH = STORAGE_PATH / "knowledge"
+FEEDBACK_PATH = STORAGE_PATH / "feedback"
 
 
 @asynccontextmanager
@@ -30,6 +31,7 @@ async def lifespan(app: FastAPI):
     DB_PATH.mkdir(parents=True, exist_ok=True)
     VECTOR_PATH.mkdir(parents=True, exist_ok=True)
     KNOWLEDGE_PATH.mkdir(parents=True, exist_ok=True)
+    FEEDBACK_PATH.mkdir(parents=True, exist_ok=True)
 
     print("Intelligence service starting...")
     print(f"  Template: {TEMPLATE}")
@@ -42,6 +44,7 @@ async def lifespan(app: FastAPI):
     app.state.db_path = DB_PATH
     app.state.vector_path = VECTOR_PATH
     app.state.knowledge_path = KNOWLEDGE_PATH
+    app.state.feedback_path = FEEDBACK_PATH
 
     print("Intelligence service ready.")
     yield
@@ -61,6 +64,8 @@ app = FastAPI(
 app.include_router(data.router)
 app.include_router(query.router)
 app.include_router(knowledge.router)
+app.include_router(feedback.router)
+app.include_router(insights.router)
 
 
 @app.get("/")

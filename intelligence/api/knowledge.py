@@ -8,7 +8,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from intelligence.core.feedback import FeedbackManager
 from intelligence.core.knowledge import KnowledgeManager
+from intelligence.core.refinement import KnowledgeRefiner
 from intelligence.templates import load_template
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
@@ -264,3 +266,97 @@ async def get_knowledge_prompt(request: Request) -> dict:
     """Get domain knowledge formatted for LLM prompt injection."""
     km = _get_knowledge_manager(request)
     return {"prompt": km.export_for_prompt()}
+
+
+def _get_refiner(request: Request) -> KnowledgeRefiner:
+    """Get a KnowledgeRefiner instance."""
+    km = _get_knowledge_manager(request)
+    feedback_path = request.app.state.feedback_path / "feedback.db"
+    fm = FeedbackManager(feedback_path)
+    return KnowledgeRefiner(km, fm)
+
+
+@router.get("/refinement/analyze")
+async def analyze_for_refinement(
+    request: Request,
+    days: int = 30,
+) -> dict:
+    """
+    Analyze feedback and suggest knowledge refinements.
+
+    Returns suggestions for:
+    - Scoring weight adjustments
+    - Business rule modifications
+    - General improvements
+    """
+    refiner = _get_refiner(request)
+    report = refiner.analyze_and_suggest(days=days)
+    return report.to_dict()
+
+
+@router.get("/refinement/priorities")
+async def get_improvement_priorities(request: Request) -> List[dict]:
+    """
+    Get prioritized list of improvement areas.
+
+    Returns areas sorted by priority based on negative feedback patterns.
+    """
+    refiner = _get_refiner(request)
+    return refiner.get_improvement_priorities()
+
+
+@router.get("/refinement/report")
+async def get_refinement_report(request: Request) -> dict:
+    """
+    Get a human-readable refinement summary report.
+
+    Returns a formatted text report summarizing all suggestions.
+    """
+    refiner = _get_refiner(request)
+    return {"report": refiner.generate_summary_report()}
+
+
+class ApplyAdjustmentsRequest(BaseModel):
+    """Request to apply weight adjustments."""
+
+    adjustments: List[dict]
+    min_confidence: float = 0.7
+
+
+@router.post("/refinement/apply")
+async def apply_refinement_adjustments(
+    request: Request,
+    body: ApplyAdjustmentsRequest,
+) -> dict:
+    """
+    Apply suggested weight adjustments.
+
+    Only applies adjustments above the minimum confidence threshold.
+    """
+    from intelligence.core.refinement import WeightAdjustment
+
+    refiner = _get_refiner(request)
+
+    # Convert dict to WeightAdjustment objects
+    adjustments = [
+        WeightAdjustment(
+            category=adj["category"],
+            factor_name=adj["factor_name"],
+            current_weight=adj["current_weight"],
+            suggested_weight=adj["suggested_weight"],
+            confidence=adj["confidence"],
+            reasoning=adj.get("reasoning", ""),
+        )
+        for adj in body.adjustments
+    ]
+
+    results = refiner.apply_weight_adjustments(
+        adjustments=adjustments,
+        min_confidence=body.min_confidence,
+    )
+
+    return {
+        "applied": sum(1 for v in results.values() if v),
+        "skipped": sum(1 for v in results.values() if not v),
+        "details": results,
+    }
