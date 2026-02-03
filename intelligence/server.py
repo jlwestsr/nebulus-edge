@@ -88,11 +88,12 @@ def health():
 
 def main():
     """Run the intelligence server."""
+    reload = os.getenv("INTELLIGENCE_RELOAD", "false").lower() == "true"
     uvicorn.run(
         "intelligence.server:app",
         host="0.0.0.0",
         port=8081,
-        reload=True,
+        reload=reload,
     )
 
 

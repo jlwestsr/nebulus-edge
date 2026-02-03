@@ -28,6 +28,9 @@ models/
 # IDE Specific
 *.code-workspace
 
+# Intelligence runtime data
+intelligence/storage/
+
 # Aider / LLM tools
 .aider*
 !.aider.conf.yml

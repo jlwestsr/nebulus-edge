@@ -24,7 +24,7 @@ up:
 
 down:
 	@echo "Stopping Nebulus Edge..."
-	@echo "Stopping Brain..."
-	@pm2 stop nebulus-brain || true
+	@echo "Stopping PM2 services..."
+	@pm2 stop all || true
 	@echo "Stopping Body..."
 	@cd body && docker compose down

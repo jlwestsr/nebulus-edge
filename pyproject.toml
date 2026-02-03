@@ -3,9 +3,9 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ai_project"
+name = "nebulus-edge"
 version = "0.1.0"
-description = "Production-grade AI Project"
+description = "Edge-deployed AI system with local LLMs and data intelligence"
 authors = [{name = "User", email = "labs@example.com"}]
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -46,5 +46,6 @@ testpaths = [
     "tests",
 ]
 pythonpath = [
-    "src"
+    "src",
+    "."
 ]
