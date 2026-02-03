@@ -137,12 +137,15 @@ Strategic Analysis:"""
         schema: dict,
     ) -> Dict[str, Any]:
         """Gather relevant context from appropriate engines."""
+        # Extract table names from schema (schema is {"tables": {...}})
+        table_names = list(schema.get("tables", {}).keys())
+
         context: Dict[str, Any] = {
             "sql_results": None,
             "sql_query": None,
             "similar_records": None,
             "knowledge": None,
-            "tables": list(schema.keys()),
+            "tables": table_names,
         }
 
         # Gather SQL data if needed
@@ -160,20 +163,38 @@ Strategic Analysis:"""
         # Gather semantic matches if needed
         if classification.needs_semantic:
             try:
-                # Search in all available collections
-                for table in schema.keys():
-                    if table in self.vector_engine.list_collections():
-                        similar = self.vector_engine.search_similar(
-                            table_name=table,
-                            query=question,
-                            n_results=10,
-                        )
-                        if similar:
-                            context["similar_records"] = [
-                                {"table": table, "id": r.id, "record": r.record}
-                                for r in similar
-                            ]
-                            break
+                # Get available vector collections
+                collections = self.vector_engine.list_collections()
+                tables_with_vectors = [t for t in table_names if t in collections]
+
+                # Prioritize tables mentioned in the question
+                question_lower = question.lower()
+                prioritized_tables = []
+                other_tables = []
+
+                for table in tables_with_vectors:
+                    # Check if table name (or singular form) appears in question
+                    table_singular = table.rstrip("s")  # Simple singular form
+                    if table in question_lower or table_singular in question_lower:
+                        prioritized_tables.append(table)
+                    else:
+                        other_tables.append(table)
+
+                # Search prioritized tables first, then others
+                search_order = prioritized_tables + other_tables
+
+                for table in search_order:
+                    similar = self.vector_engine.search_similar(
+                        table_name=table,
+                        query=question,
+                        n_results=10,
+                    )
+                    if similar:
+                        context["similar_records"] = [
+                            {"table": table, "id": r.id, "record": r.record}
+                            for r in similar
+                        ]
+                        break
             except Exception as e:
                 context["semantic_error"] = str(e)
 
