@@ -7,7 +7,7 @@ to enable continuous improvement of the intelligence system.
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -189,7 +189,7 @@ class FeedbackManager:
             id=None,
             feedback_type=feedback_type,
             rating=rating,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(tz=timezone.utc),
             query=query,
             response=response,
             context=context,
@@ -248,7 +248,7 @@ class FeedbackManager:
                 SET outcome = ?, outcome_timestamp = ?
                 WHERE id = ?
                 """,
-                (outcome, datetime.utcnow().isoformat(), feedback_id),
+                (outcome, datetime.now(tz=timezone.utc).isoformat(), feedback_id),
             )
             conn.commit()
             return cursor.rowcount > 0
@@ -339,7 +339,7 @@ class FeedbackManager:
         """
         from datetime import timedelta
 
-        start_time = datetime.utcnow() - timedelta(days=days)
+        start_time = datetime.now(tz=timezone.utc) - timedelta(days=days)
 
         conn = sqlite3.connect(self.db_path)
         try:

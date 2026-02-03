@@ -7,7 +7,7 @@ including uploads, queries, and access events.
 import json
 import sqlite3
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -204,7 +204,7 @@ class AuditLogger:
         return self.log(
             AuditEvent(
                 event_type=AuditEventType.DATA_UPLOAD,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 user_id=user_id,
                 ip_address=ip_address,
                 resource=table_name,
@@ -238,7 +238,7 @@ class AuditLogger:
         return self.log(
             AuditEvent(
                 event_type=event_type,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 user_id=user_id,
                 ip_address=ip_address,
                 resource=table_name,
@@ -263,7 +263,7 @@ class AuditLogger:
         return self.log(
             AuditEvent(
                 event_type=AuditEventType.DATA_VIEW,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 user_id=user_id,
                 ip_address=ip_address,
                 resource=table_name,
@@ -282,7 +282,7 @@ class AuditLogger:
         return self.log(
             AuditEvent(
                 event_type=AuditEventType.PII_DETECTED,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 user_id=user_id,
                 resource=table_name,
                 action="pii_scan",
@@ -305,7 +305,7 @@ class AuditLogger:
         return self.log(
             AuditEvent(
                 event_type=event_type,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 user_id=user_id,
                 ip_address=ip_address,
                 resource=resource,
@@ -480,7 +480,9 @@ class AuditLogger:
         Returns:
             Number of records deleted
         """
-        cutoff = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        cutoff = datetime.now(tz=timezone.utc).replace(
+            hour=0, minute=0, second=0, microsecond=0
+        )
         from datetime import timedelta
 
         cutoff = cutoff - timedelta(days=days)

@@ -113,10 +113,10 @@ class TestInsightReport:
 
     def test_create_report(self):
         """Test creating an insight report."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         report = InsightReport(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(tz=timezone.utc),
             tables_analyzed=["table1", "table2"],
             insights=[
                 Insight(
@@ -139,10 +139,10 @@ class TestInsightReport:
 
     def test_to_dict(self):
         """Test converting report to dictionary."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         report = InsightReport(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(tz=timezone.utc),
             tables_analyzed=["inventory"],
             insights=[],
             summary="No insights",
@@ -156,10 +156,10 @@ class TestInsightReport:
 
     def test_count_by_priority(self):
         """Test counting insights by priority."""
-        from datetime import datetime
+        from datetime import datetime, timezone
 
         report = InsightReport(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(tz=timezone.utc),
             tables_analyzed=[],
             insights=[
                 Insight(

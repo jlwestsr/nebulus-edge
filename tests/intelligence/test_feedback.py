@@ -1,7 +1,7 @@
 """Tests for the feedback module."""
 
 import tempfile
-from datetime import datetime
+from datetime import datetime, timezone
 from pathlib import Path
 
 import pytest
@@ -36,7 +36,7 @@ class TestFeedback:
             id=1,
             feedback_type=FeedbackType.QUERY_RESULT,
             rating=FeedbackRating.POSITIVE,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(tz=timezone.utc),
             query="How many sales?",
             response="There were 150 sales.",
         )

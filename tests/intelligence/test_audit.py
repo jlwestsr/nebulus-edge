@@ -1,7 +1,7 @@
 """Tests for the audit logging module."""
 
 import tempfile
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 import pytest
@@ -29,7 +29,7 @@ class TestAuditEvent:
         """Test creating an audit event."""
         event = AuditEvent(
             event_type=AuditEventType.DATA_UPLOAD,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(tz=timezone.utc),
             user_id="user123",
             resource="test_table",
             action="upload",
@@ -81,7 +81,7 @@ class TestAuditLogger:
         """Test logging a basic event."""
         event = AuditEvent(
             event_type=AuditEventType.DATA_UPLOAD,
-            timestamp=datetime.utcnow(),
+            timestamp=datetime.now(tz=timezone.utc),
             user_id="user123",
             resource="test_table",
         )
@@ -178,7 +178,7 @@ class TestAuditLogger:
         logger.log_upload("test_table", 10, ["col1"])
 
         # Query with time filter
-        now = datetime.utcnow()
+        now = datetime.now(tz=timezone.utc)
         events = logger.get_events(
             start_time=now - timedelta(hours=1),
             end_time=now + timedelta(hours=1),
@@ -262,7 +262,7 @@ class TestAuditEventTypes:
         for event_type in AuditEventType:
             event = AuditEvent(
                 event_type=event_type,
-                timestamp=datetime.utcnow(),
+                timestamp=datetime.now(tz=timezone.utc),
                 resource="test",
             )
             event_id = logger.log(event)

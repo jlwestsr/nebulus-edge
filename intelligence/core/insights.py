@@ -6,7 +6,7 @@ without requiring user prompts.
 
 import sqlite3
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from enum import Enum
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -44,7 +44,9 @@ class Insight:
     description: str
     data_points: Dict[str, Any] = field(default_factory=dict)
     recommendations: List[str] = field(default_factory=list)
-    generated_at: datetime = field(default_factory=datetime.utcnow)
+    generated_at: datetime = field(
+        default_factory=lambda: datetime.now(tz=timezone.utc)
+    )
     expires_at: Optional[datetime] = None
     table_name: Optional[str] = None
     category: Optional[str] = None
@@ -135,7 +137,7 @@ class InsightGenerator:
             InsightReport with generated insights
         """
         report = InsightReport(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(tz=timezone.utc),
             tables_analyzed=[],
             insights=[],
         )

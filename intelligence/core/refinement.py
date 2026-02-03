@@ -5,7 +5,7 @@ factors, business rules, and system behavior.
 """
 
 from dataclasses import dataclass, field
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 from intelligence.core.feedback import (
@@ -127,7 +127,7 @@ class KnowledgeRefiner:
 
         # Initialize report
         report = RefinementReport(
-            generated_at=datetime.utcnow(),
+            generated_at=datetime.now(tz=timezone.utc),
             feedback_analyzed=summary.total_count,
             satisfaction_rate=(
                 summary.positive_count / summary.total_count
