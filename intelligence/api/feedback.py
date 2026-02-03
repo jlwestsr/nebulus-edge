@@ -8,7 +8,7 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field
 
-from intelligence.core.feedback import (
+from nebulus_core.intelligence.core.feedback import (
     FeedbackManager,
     FeedbackRating,
     FeedbackType,
@@ -85,7 +85,7 @@ def _get_feedback_manager(request: Request) -> FeedbackManager:
 
 
 @router.post("/submit", response_model=FeedbackResponse)
-async def submit_feedback(
+def submit_feedback(
     request: Request,
     body: FeedbackSubmission,
 ) -> FeedbackResponse:
@@ -132,7 +132,7 @@ async def submit_feedback(
 
 
 @router.post("/outcome", response_model=dict)
-async def record_outcome(
+def record_outcome(
     request: Request,
     body: OutcomeSubmission,
 ) -> dict:
@@ -160,7 +160,7 @@ async def record_outcome(
 
 
 @router.get("/summary", response_model=FeedbackSummaryResponse)
-async def get_feedback_summary(
+def get_feedback_summary(
     request: Request,
     feedback_type: Optional[str] = None,
     days: int = 30,
@@ -206,7 +206,7 @@ async def get_feedback_summary(
 
 
 @router.get("/patterns")
-async def get_negative_patterns(
+def get_negative_patterns(
     request: Request,
     feedback_type: Optional[str] = None,
     limit: int = 10,
@@ -236,7 +236,7 @@ async def get_negative_patterns(
 
 
 @router.get("/refinement", response_model=RefinementSuggestions)
-async def get_refinement_suggestions(
+def get_refinement_suggestions(
     request: Request,
 ) -> RefinementSuggestions:
     """
@@ -262,7 +262,7 @@ async def get_refinement_suggestions(
 
 
 @router.get("/history")
-async def get_feedback_history(
+def get_feedback_history(
     request: Request,
     feedback_type: Optional[str] = None,
     min_rating: Optional[int] = None,

@@ -5,10 +5,14 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.feedback import FeedbackManager, FeedbackRating, FeedbackType
-from intelligence.core.knowledge import KnowledgeManager
-from intelligence.core.refinement import KnowledgeRefiner, WeightAdjustment
-from intelligence.templates import load_template
+from nebulus_core.intelligence.core.feedback import (
+    FeedbackManager,
+    FeedbackRating,
+    FeedbackType,
+)
+from nebulus_core.intelligence.core.knowledge import KnowledgeManager
+from nebulus_core.intelligence.core.refinement import KnowledgeRefiner, WeightAdjustment
+from nebulus_core.intelligence.templates import load_template
 
 
 @pytest.fixture

@@ -13,10 +13,13 @@ import uvicorn
 from fastapi import FastAPI
 
 from intelligence.api import data, feedback, insights, knowledge, query
+from nebulus_core.llm.client import LLMClient
+from nebulus_core.vector.client import VectorClient
 
 # Configuration
 BRAIN_URL = os.getenv("BRAIN_URL", "http://localhost:8080")
 TEMPLATE = os.getenv("INTELLIGENCE_TEMPLATE", "dealership")
+MODEL = os.getenv("NEBULUS_MODEL", "default")
 STORAGE_PATH = Path(__file__).parent / "storage"
 DB_PATH = STORAGE_PATH / "databases"
 VECTOR_PATH = STORAGE_PATH / "vectors"
@@ -39,12 +42,18 @@ async def lifespan(app: FastAPI):
     print(f"  Storage: {STORAGE_PATH}")
 
     # Store config in app state for access by routes
-    app.state.brain_url = BRAIN_URL
     app.state.template = TEMPLATE
     app.state.db_path = DB_PATH
     app.state.vector_path = VECTOR_PATH
     app.state.knowledge_path = KNOWLEDGE_PATH
     app.state.feedback_path = FEEDBACK_PATH
+
+    # Create shared core clients
+    app.state.llm = LLMClient(base_url=BRAIN_URL)
+    app.state.vector_client = VectorClient(
+        settings={"mode": "embedded", "path": str(VECTOR_PATH)}
+    )
+    app.state.model = MODEL
 
     print("Intelligence service ready.")
     yield

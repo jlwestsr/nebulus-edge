@@ -2,7 +2,11 @@
 
 import pytest
 
-from intelligence.templates import VerticalTemplate, list_templates, load_template
+from nebulus_core.intelligence.templates import (
+    VerticalTemplate,
+    list_templates,
+    load_template,
+)
 
 
 class TestListTemplates:

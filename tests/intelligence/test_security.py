@@ -2,7 +2,7 @@
 
 import pytest
 
-from intelligence.core.security import (
+from nebulus_core.intelligence.core.security import (
     ValidationError,
     quote_identifier,
     sanitize_table_name,

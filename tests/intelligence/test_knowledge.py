@@ -5,13 +5,13 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.knowledge import (
+from nebulus_core.intelligence.core.knowledge import (
     BusinessRule,
     KnowledgeManager,
     Metric,
     ScoringFactor,
 )
-from intelligence.templates import load_template
+from nebulus_core.intelligence.templates import load_template
 
 
 @pytest.fixture

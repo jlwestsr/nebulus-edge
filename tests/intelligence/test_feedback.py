@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.feedback import (
+from nebulus_core.intelligence.core.feedback import (
     Feedback,
     FeedbackManager,
     FeedbackRating,

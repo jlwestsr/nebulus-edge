@@ -8,9 +8,9 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, Request
 from pydantic import BaseModel
 
-from intelligence.core.insights import InsightGenerator
-from intelligence.core.knowledge import KnowledgeManager
-from intelligence.templates import load_template
+from nebulus_core.intelligence.core.insights import InsightGenerator
+from nebulus_core.intelligence.core.knowledge import KnowledgeManager
+from nebulus_core.intelligence.templates import load_template
 
 router = APIRouter(prefix="/insights", tags=["insights"])
 
@@ -58,7 +58,7 @@ def _get_insight_generator(request: Request) -> InsightGenerator:
 
 
 @router.get("/generate", response_model=InsightReportResponse)
-async def generate_insights(
+def generate_insights(
     request: Request,
     tables: Optional[str] = None,
 ) -> InsightReportResponse:
@@ -108,7 +108,7 @@ async def generate_insights(
 
 
 @router.get("/high-priority", response_model=List[InsightResponse])
-async def get_high_priority_insights(
+def get_high_priority_insights(
     request: Request,
     tables: Optional[str] = None,
 ) -> List[InsightResponse]:
@@ -142,7 +142,7 @@ async def get_high_priority_insights(
 
 
 @router.get("/category/{category}", response_model=List[InsightResponse])
-async def get_insights_by_category(
+def get_insights_by_category(
     request: Request,
     category: str,
     tables: Optional[str] = None,
@@ -181,7 +181,7 @@ async def get_insights_by_category(
 
 
 @router.get("/summary")
-async def get_insight_summary(request: Request) -> dict:
+def get_insight_summary(request: Request) -> dict:
     """
     Get a quick summary of insights.
 

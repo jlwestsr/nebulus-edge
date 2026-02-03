@@ -5,7 +5,9 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.ingest import DataIngestor, IngestResult
+from nebulus_core.intelligence.core.ingest import DataIngestor, IngestResult
+from nebulus_core.intelligence.core.pii import PIIDetector
+from nebulus_core.intelligence.templates import load_template
 
 
 @pytest.fixture
@@ -27,9 +29,16 @@ GHI789,Ford,F-150,2019,35000
 
 
 @pytest.fixture
-def ingestor(temp_db):
+def pii_detector():
+    """Create a PIIDetector instance."""
+    return PIIDetector()
+
+
+@pytest.fixture
+def ingestor(temp_db, pii_detector):
     """Create a DataIngestor instance."""
-    return DataIngestor(temp_db, template="dealership")
+    template = load_template("dealership")
+    return DataIngestor(temp_db, pii_detector, template=template)
 
 
 class TestDataIngestor:
@@ -136,9 +145,10 @@ ABC123,Toyota,Camry
 
         assert any("duplicates" in w.lower() for w in result.warnings)
 
-    def test_medical_template_primary_key(self, temp_db):
+    def test_medical_template_primary_key(self, temp_db, pii_detector):
         """Test primary key detection for medical template."""
-        ingestor = DataIngestor(temp_db, template="medical")
+        template = load_template("medical")
+        ingestor = DataIngestor(temp_db, pii_detector, template=template)
         csv_content = """patient_id,first_name,last_name
 P001,John,Doe
 P002,Jane,Smith
@@ -146,9 +156,10 @@ P002,Jane,Smith
         result = ingestor.ingest_csv(csv_content, "patients")
         assert result.primary_key == "patient_id"
 
-    def test_legal_template_primary_key(self, temp_db):
+    def test_legal_template_primary_key(self, temp_db, pii_detector):
         """Test primary key detection for legal template."""
-        ingestor = DataIngestor(temp_db, template="legal")
+        template = load_template("legal")
+        ingestor = DataIngestor(temp_db, pii_detector, template=template)
         csv_content = """case_id,client_name,matter_type
 C001,Acme Corp,litigation
 C002,Smith LLC,transactional

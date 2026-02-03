@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.audit import AuditEvent, AuditEventType, AuditLogger
+from nebulus_core.intelligence.core.audit import AuditEvent, AuditEventType, AuditLogger
 
 
 @pytest.fixture

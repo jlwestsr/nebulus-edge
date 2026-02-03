@@ -2,7 +2,7 @@
 
 import pytest
 
-from intelligence.core.pii import PIIDetector, PIIType
+from nebulus_core.intelligence.core.pii import PIIDetector, PIIType
 
 
 class TestPIIDetector:

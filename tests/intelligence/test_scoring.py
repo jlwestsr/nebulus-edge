@@ -6,9 +6,9 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.knowledge import KnowledgeManager
-from intelligence.core.scoring import SaleScorer, ScoredRecord
-from intelligence.templates import load_template
+from nebulus_core.intelligence.core.knowledge import KnowledgeManager
+from nebulus_core.intelligence.core.scoring import SaleScorer, ScoredRecord
+from nebulus_core.intelligence.templates import load_template
 
 
 @pytest.fixture
@@ -18,8 +18,7 @@ def temp_db():
         db_path = Path(tmpdir) / "test.db"
 
         conn = sqlite3.connect(db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE sales (
                 vin TEXT PRIMARY KEY,
                 sale_price INTEGER,
@@ -30,8 +29,7 @@ def temp_db():
                 warranty_sold INTEGER,
                 buyer_distance_miles INTEGER
             )
-        """
-        )
+        """)
 
         # Insert test data
         test_data = [

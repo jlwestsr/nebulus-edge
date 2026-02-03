@@ -10,12 +10,17 @@ authors = [{name = "User", email = "labs@example.com"}]
 requires-python = ">=3.10"
 license = {text = "MIT"}
 dependencies = [
+    "nebulus-core",
     "numpy",
     "pandas",
     "scikit-learn",
 ]
 
+[project.entry-points."nebulus.platform"]
+edge = "nebulus_edge.adapter:EdgeAdapter"
 
+[tool.setuptools.packages.find]
+include = ["nebulus_edge", "nebulus_edge.*", "intelligence", "intelligence.*"]
 
 # --- Black Configuration ---
 [tool.black]

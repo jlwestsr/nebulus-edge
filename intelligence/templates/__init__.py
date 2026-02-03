@@ -1,6 +1,6 @@
-"""Intelligence vertical templates."""
+"""Intelligence templates -- re-exports from nebulus_core.intelligence.templates."""
 
-from intelligence.templates.base import (
+from nebulus_core.intelligence.templates import (
     VerticalTemplate,
     list_templates,
     load_template,

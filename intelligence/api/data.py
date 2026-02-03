@@ -9,8 +9,10 @@ from typing import Optional
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
-from intelligence.core.ingest import DataIngestor
-from intelligence.core.vector_engine import VectorEngine
+from nebulus_core.intelligence.core.ingest import DataIngestor
+from nebulus_core.intelligence.core.pii import PIIDetector
+from nebulus_core.intelligence.core.vector_engine import VectorEngine
+from nebulus_core.intelligence.templates import load_template
 
 router = APIRouter(prefix="/data", tags=["data"])
 
@@ -58,13 +60,22 @@ class SchemaInfo(BaseModel):
 def _get_ingestor(request: Request) -> DataIngestor:
     """Get or create a DataIngestor instance with vector support."""
     db_path = request.app.state.db_path / "main.db"
-    template = request.app.state.template
-    vector_path = request.app.state.vector_path
+    template_name = request.app.state.template
+    vector_client = request.app.state.vector_client
 
     # Create vector engine for semantic search
-    vector_engine = VectorEngine(vector_path)
+    vector_engine = VectorEngine(vector_client)
 
-    return DataIngestor(db_path, template, vector_engine)
+    # Create PII detector
+    pii_detector = PIIDetector()
+
+    # Load template
+    try:
+        template = load_template(template_name)
+    except Exception:
+        template = None
+
+    return DataIngestor(db_path, pii_detector, vector_engine, template)
 
 
 @router.post("/upload", response_model=IngestResult)

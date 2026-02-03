@@ -1,45 +1,41 @@
-"""Intelligence core modules."""
+"""Intelligence core -- re-exports from nebulus_core.intelligence.core."""
 
-from intelligence.core.classifier import (
+from nebulus_core.intelligence.core import (
+    AuditLogger,
     ClassificationResult,
+    DataIngestor,
+    FeedbackManager,
+    InsightGenerator,
+    IntelligenceOrchestrator,
+    KnowledgeManager,
+    KnowledgeRefiner,
+    PIIDetector,
+    PIIReport,
+    PIIType,
     QueryType,
     QuestionClassifier,
+    SaleScorer,
+    SQLEngine,
+    ValidationError,
+    VectorEngine,
 )
-from intelligence.core.ingest import DataIngestor, IngestResult
-from intelligence.core.knowledge import (
-    BusinessRule,
-    DomainKnowledge,
-    KnowledgeManager,
-    Metric,
-    ScoringFactor,
-)
-from intelligence.core.orchestrator import (
-    IntelligenceOrchestrator,
-    IntelligenceResponse,
-)
-from intelligence.core.scoring import SaleScorer, ScoredRecord
-from intelligence.core.sql_engine import QueryResult, SQLEngine, UnsafeQueryError
-from intelligence.core.vector_engine import PatternResult, SimilarRecord, VectorEngine
 
 __all__ = [
-    "DataIngestor",
-    "IngestResult",
-    "SQLEngine",
-    "QueryResult",
-    "UnsafeQueryError",
-    "KnowledgeManager",
-    "DomainKnowledge",
-    "ScoringFactor",
-    "BusinessRule",
-    "Metric",
-    "SaleScorer",
-    "ScoredRecord",
-    "VectorEngine",
-    "SimilarRecord",
-    "PatternResult",
-    "QuestionClassifier",
+    "AuditLogger",
     "ClassificationResult",
-    "QueryType",
+    "DataIngestor",
+    "FeedbackManager",
+    "InsightGenerator",
     "IntelligenceOrchestrator",
-    "IntelligenceResponse",
+    "KnowledgeManager",
+    "KnowledgeRefiner",
+    "PIIDetector",
+    "PIIReport",
+    "PIIType",
+    "QueryType",
+    "QuestionClassifier",
+    "SaleScorer",
+    "SQLEngine",
+    "ValidationError",
+    "VectorEngine",
 ]

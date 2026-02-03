@@ -8,12 +8,13 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from intelligence.core.knowledge import KnowledgeManager
-from intelligence.core.orchestrator import IntelligenceOrchestrator
-from intelligence.core.scoring import SaleScorer
-from intelligence.core.sql_engine import SQLEngine, UnsafeQueryError
-from intelligence.core.vector_engine import VectorEngine
-from intelligence.templates import load_template
+from nebulus_core.intelligence.core.classifier import QuestionClassifier
+from nebulus_core.intelligence.core.knowledge import KnowledgeManager
+from nebulus_core.intelligence.core.orchestrator import IntelligenceOrchestrator
+from nebulus_core.intelligence.core.scoring import SaleScorer
+from nebulus_core.intelligence.core.sql_engine import SQLEngine, UnsafeQueryError
+from nebulus_core.intelligence.core.vector_engine import VectorEngine
+from nebulus_core.intelligence.templates import load_template
 
 router = APIRouter(prefix="/query", tags=["query"])
 
@@ -54,23 +55,25 @@ class SQLResponse(BaseModel):
 def _get_sql_engine(request: Request) -> SQLEngine:
     """Get a SQLEngine instance."""
     db_path = request.app.state.db_path / "main.db"
-    brain_url = request.app.state.brain_url
-    return SQLEngine(db_path, brain_url)
+    llm = request.app.state.llm
+    model = request.app.state.model
+    return SQLEngine(db_path, llm, model)
 
 
 def _get_vector_engine(request: Request) -> VectorEngine:
     """Get a VectorEngine instance."""
-    vector_path = request.app.state.vector_path
-    return VectorEngine(vector_path)
+    vector_client = request.app.state.vector_client
+    return VectorEngine(vector_client)
 
 
 def _get_orchestrator(request: Request) -> IntelligenceOrchestrator:
     """Get an IntelligenceOrchestrator instance."""
     db_path = request.app.state.db_path / "main.db"
-    vector_path = request.app.state.vector_path
     knowledge_path = request.app.state.knowledge_path / "knowledge.json"
-    brain_url = request.app.state.brain_url
     template_name = request.app.state.template
+    llm = request.app.state.llm
+    model = request.app.state.model
+    vector_client = request.app.state.vector_client
 
     # Load template config
     try:
@@ -79,18 +82,24 @@ def _get_orchestrator(request: Request) -> IntelligenceOrchestrator:
     except Exception:
         template_config = None
 
+    # Build component objects for the orchestrator
+    classifier = QuestionClassifier(llm, model)
+    sql_engine = SQLEngine(db_path, llm, model)
+    vector_engine = VectorEngine(vector_client)
+    knowledge = KnowledgeManager(knowledge_path, template_config)
+
     return IntelligenceOrchestrator(
-        db_path=db_path,
-        vector_path=vector_path,
-        knowledge_path=knowledge_path,
-        brain_url=brain_url,
-        template_config=template_config,
-        template_name=template_name,
+        classifier=classifier,
+        sql_engine=sql_engine,
+        vector_engine=vector_engine,
+        knowledge=knowledge,
+        llm=llm,
+        model=model,
     )
 
 
 @router.post("/ask", response_model=IntelligenceResponse)
-async def ask_question(
+def ask_question(
     request: Request,
     body: QuestionRequest,
 ) -> IntelligenceResponse:
@@ -112,7 +121,7 @@ async def ask_question(
 
     try:
         # Use simple rule-based classification for faster response
-        result = await orchestrator.ask(body.question, use_simple_classification=True)
+        result = orchestrator.ask(body.question, use_simple_classification=True)
 
         return IntelligenceResponse(
             answer=result.answer,
@@ -133,7 +142,7 @@ async def ask_question(
 
 
 @router.post("/sql", response_model=SQLResponse)
-async def execute_sql(
+def execute_sql(
     request: Request,
     body: SQLRequest,
 ) -> SQLResponse:
@@ -176,7 +185,7 @@ class SimilarRecordResponse(BaseModel):
 
 
 @router.post("/similar")
-async def find_similar(
+def find_similar(
     request: Request,
     body: SimilarityRequest,
 ) -> List[SimilarRecordResponse]:
@@ -275,7 +284,7 @@ def _get_knowledge_manager(request: Request) -> KnowledgeManager:
 
 
 @router.post("/score", response_model=ScoreResponse)
-async def score_records(
+def score_records(
     request: Request,
     body: ScoreRequest,
 ) -> ScoreResponse:
@@ -354,7 +363,7 @@ class PatternResponse(BaseModel):
 
 
 @router.post("/patterns")
-async def find_patterns(
+def find_patterns(
     request: Request,
     body: PatternRequest,
 ) -> PatternResponse:

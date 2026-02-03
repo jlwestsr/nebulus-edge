@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from intelligence.core.insights import (
+from nebulus_core.intelligence.core.insights import (
     Insight,
     InsightGenerator,
     InsightPriority,
@@ -22,8 +22,7 @@ def temp_db():
         db_path = Path(tmpdir) / "test.db"
 
         conn = sqlite3.connect(db_path)
-        conn.execute(
-            """
+        conn.execute("""
             CREATE TABLE inventory (
                 vin TEXT PRIMARY KEY,
                 make TEXT,
@@ -33,8 +32,7 @@ def temp_db():
                 days_on_lot INTEGER,
                 category TEXT
             )
-            """
-        )
+            """)
 
         # Insert test data with varied days_on_lot
         test_data = [

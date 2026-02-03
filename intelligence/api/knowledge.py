@@ -8,10 +8,10 @@ from typing import Any, Dict, List, Optional
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
-from intelligence.core.feedback import FeedbackManager
-from intelligence.core.knowledge import KnowledgeManager
-from intelligence.core.refinement import KnowledgeRefiner
-from intelligence.templates import load_template
+from nebulus_core.intelligence.core.feedback import FeedbackManager
+from nebulus_core.intelligence.core.knowledge import KnowledgeManager
+from nebulus_core.intelligence.core.refinement import KnowledgeRefiner, WeightAdjustment
+from nebulus_core.intelligence.templates import load_template
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -84,14 +84,14 @@ def _get_knowledge_manager(request: Request) -> KnowledgeManager:
 
 
 @router.get("/")
-async def get_knowledge(request: Request) -> dict:
+def get_knowledge(request: Request) -> dict:
     """Get all domain knowledge."""
     km = _get_knowledge_manager(request)
     return km.to_dict()
 
 
 @router.get("/scoring")
-async def get_scoring_factors(
+def get_scoring_factors(
     request: Request,
     category: str = "perfect_sale",
 ) -> List[dict]:
@@ -110,7 +110,7 @@ async def get_scoring_factors(
 
 
 @router.get("/scoring/all")
-async def get_all_scoring_factors(request: Request) -> Dict[str, List[dict]]:
+def get_all_scoring_factors(request: Request) -> Dict[str, List[dict]]:
     """Get all scoring factors for all categories."""
     km = _get_knowledge_manager(request)
     all_factors = km.get_all_scoring_factors()
@@ -129,7 +129,7 @@ async def get_all_scoring_factors(request: Request) -> Dict[str, List[dict]]:
 
 
 @router.put("/scoring/{category}/{factor_name}")
-async def update_scoring_factor(
+def update_scoring_factor(
     request: Request,
     category: str,
     factor_name: str,
@@ -155,7 +155,7 @@ async def update_scoring_factor(
 
 
 @router.get("/rules")
-async def get_business_rules(request: Request) -> List[dict]:
+def get_business_rules(request: Request) -> List[dict]:
     """Get all business rules."""
     km = _get_knowledge_manager(request)
     rules = km.get_business_rules()
@@ -171,7 +171,7 @@ async def get_business_rules(request: Request) -> List[dict]:
 
 
 @router.post("/rules")
-async def add_business_rule(
+def add_business_rule(
     request: Request,
     body: AddRuleRequest,
 ) -> dict:
@@ -197,7 +197,7 @@ async def add_business_rule(
 
 
 @router.get("/metrics")
-async def get_metrics(request: Request) -> Dict[str, dict]:
+def get_metrics(request: Request) -> Dict[str, dict]:
     """Get all metrics."""
     km = _get_knowledge_manager(request)
     metrics = km.get_metrics()
@@ -214,7 +214,7 @@ async def get_metrics(request: Request) -> Dict[str, dict]:
 
 
 @router.get("/metrics/{metric_name}")
-async def get_metric(request: Request, metric_name: str) -> dict:
+def get_metric(request: Request, metric_name: str) -> dict:
     """Get a specific metric."""
     km = _get_knowledge_manager(request)
     metric = km.get_metric(metric_name)
@@ -236,7 +236,7 @@ async def get_metric(request: Request, metric_name: str) -> dict:
 
 
 @router.post("/custom")
-async def add_custom_knowledge(
+def add_custom_knowledge(
     request: Request,
     body: AddCustomKnowledgeRequest,
 ) -> dict:
@@ -247,7 +247,7 @@ async def add_custom_knowledge(
 
 
 @router.get("/custom/{key}")
-async def get_custom_knowledge(request: Request, key: str) -> dict:
+def get_custom_knowledge(request: Request, key: str) -> dict:
     """Get custom knowledge by key."""
     km = _get_knowledge_manager(request)
     value = km.get_custom_knowledge(key)
@@ -262,7 +262,7 @@ async def get_custom_knowledge(request: Request, key: str) -> dict:
 
 
 @router.get("/prompt")
-async def get_knowledge_prompt(request: Request) -> dict:
+def get_knowledge_prompt(request: Request) -> dict:
     """Get domain knowledge formatted for LLM prompt injection."""
     km = _get_knowledge_manager(request)
     return {"prompt": km.export_for_prompt()}
@@ -277,7 +277,7 @@ def _get_refiner(request: Request) -> KnowledgeRefiner:
 
 
 @router.get("/refinement/analyze")
-async def analyze_for_refinement(
+def analyze_for_refinement(
     request: Request,
     days: int = 30,
 ) -> dict:
@@ -295,7 +295,7 @@ async def analyze_for_refinement(
 
 
 @router.get("/refinement/priorities")
-async def get_improvement_priorities(request: Request) -> List[dict]:
+def get_improvement_priorities(request: Request) -> List[dict]:
     """
     Get prioritized list of improvement areas.
 
@@ -306,7 +306,7 @@ async def get_improvement_priorities(request: Request) -> List[dict]:
 
 
 @router.get("/refinement/report")
-async def get_refinement_report(request: Request) -> dict:
+def get_refinement_report(request: Request) -> dict:
     """
     Get a human-readable refinement summary report.
 
@@ -324,7 +324,7 @@ class ApplyAdjustmentsRequest(BaseModel):
 
 
 @router.post("/refinement/apply")
-async def apply_refinement_adjustments(
+def apply_refinement_adjustments(
     request: Request,
     body: ApplyAdjustmentsRequest,
 ) -> dict:
@@ -333,8 +333,6 @@ async def apply_refinement_adjustments(
 
     Only applies adjustments above the minimum confidence threshold.
     """
-    from intelligence.core.refinement import WeightAdjustment
-
     refiner = _get_refiner(request)
 
     # Convert dict to WeightAdjustment objects
