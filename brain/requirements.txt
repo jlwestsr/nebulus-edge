@@ -1,0 +1,4 @@
+mlx-lm
+huggingface_hub
+fastapi
+uvicorn

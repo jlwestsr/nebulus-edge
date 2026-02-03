@@ -1,0 +1,8 @@
+# Ignore all data files in storage
+databases/
+vectors/
+knowledge/
+
+# Keep this file
+!.gitignore
+!.gitkeep

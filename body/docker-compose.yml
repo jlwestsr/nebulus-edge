@@ -1,0 +1,20 @@
+services:
+  open-webui:
+    image: ghcr.io/open-webui/open-webui:main
+    container_name: open-webui
+    ports:
+      - "3000:8080"
+    environment:
+      OPENAI_API_BASE_URL: http://host.docker.internal:8080/v1
+      ENABLE_OLLAMA_API: "False"
+      DEFAULT_SYSTEM_PROMPT: "You are an AI assistant with Nebulus Intelligence tools for business data analysis. Tools: ask_data, get_insights, get_alerts, submit_feedback, get_scoring_factors, score_records, list_tables, get_business_rules, get_metrics."
+      INTELLIGENCE_URL: http://host.docker.internal:8081
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - open-webui:/app/backend/data
+      - ./functions:/app/backend/functions
+    restart: unless-stopped
+
+volumes:
+  open-webui:

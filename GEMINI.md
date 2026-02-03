@@ -14,9 +14,6 @@ A production-grade AI project.
 - **Directives**: Follow the rules in [AI_DIRECTIVES.md](AI_DIRECTIVES.md).
 - **Workflow**: Adhere to the process in [WORKFLOW.md](WORKFLOW.md).
 - **Context**: Refer to [CONTEXT.md](CONTEXT.md) for deeper architectural details.
-- **Entry Point**: 
-
-  `src/project_generator/cli.py`
 
 
 ## Project Influences

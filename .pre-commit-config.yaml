@@ -1,4 +1,7 @@
 # .pre-commit-config.yaml
+default_language_version:
+  python: python3.12
+
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.4.0
@@ -14,7 +17,7 @@ repos:
       - id: black
 
   - repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    rev: 7.1.1
     hooks:
       - id: flake8
 
@@ -24,7 +27,7 @@ repos:
       - id: yamllint
 
   - repo: https://github.com/ansible/ansible-lint
-    rev: v24.2.0
+    rev: v25.4.0
     hooks:
       - id: ansible-lint
 

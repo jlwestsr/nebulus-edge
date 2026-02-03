@@ -1,10 +1,4 @@
-filelock==3.18.0
-virtualenv<20.27
-pytest
-black
+pytest>=7.0
 flake8
-pre-commit
+black
 ansible
-ansible-lint
-yamllint
-mkdocs-material
