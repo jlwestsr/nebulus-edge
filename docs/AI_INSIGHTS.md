@@ -22,8 +22,25 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **pyproject.toml pythonpath**: Must include both `"src"` and `"."` — the latter is required for `intelligence.*` imports to resolve in pytest.
 *   **uvicorn reload**: Intelligence server defaults `reload=False` for production (PM2). Set `INTELLIGENCE_RELOAD=true` env var for local dev only. Hardcoding `reload=True` causes issues under PM2.
 *   **make down**: Uses `pm2 stop all` to stop all services. If a new PM2 service is added, it will be stopped automatically — no Makefile change needed.
+*   **nebulus-core AuditLogger API**: The `AuditLogger` constructor requires a `Path` object, not a string. Always wrap with `Path()`. The `log()` method takes an `AuditEvent` dataclass — not keyword args. `AuditEvent` requires an explicit `timestamp` field (use `datetime.now()`). Query events with `get_events()`, not `query()`. The audit table is named `audit_log`, not `audit_events`.
+*   **shared/ module imports**: The `shared/` directory sits at project root and is importable because `pyproject.toml` includes `"."` in pythonpath. Brain imports work because the start scripts run from project root. If you add modules to `shared/`, ensure `__init__.py` exists at every level.
+*   **Middleware and response body**: `AuditMiddleware` consumes the response body iterator to compute SHA-256 hashes, then reconstructs the `Response`. This means response headers set by FastAPI (like Content-Length) may be replaced. The middleware re-creates the response with `media_type` preserved.
 
 ## 3. Workflow Nuances
 *   **Verification**: Trust the test runner (`pytest` or `verify.yml`) over your assumptions.
 *   **Start scripts**: Both `start_brain.sh` and `start_intelligence.sh` auto-create the venv if missing. They install their own service-specific requirements on each start.
 *   **Pre-commit hooks**: The project runs end-of-file-fixer, black, flake8, and pytest as pre-commit hooks. If a commit fails on end-of-file-fixer, re-stage the modified files and create a new commit (do not amend).
+
+## 4. Documentation & Wiki
+*   **GitHub wiki**: Cloned at `../nebulus-edge.wiki/` (sibling directory to the main repo). Wiki uses HTTPS remote — may need SSH or token auth to push. Committed locally even if push fails.
+*   **Wiki pages**: Home, Audit-Logging, Installation-Guide, Quick-Start, Architecture-Overview. 14 additional pages are linked from Home but not yet created (they serve as a planned outline).
+*   **README as SEO surface**: The README is intentionally keyword-rich for GitHub search and Google indexing. It targets industry verticals (healthcare, legal, finance, automotive) and compliance terms (HIPAA, GDPR, CCPA, SOC 2, GLBA, BAA). When editing, preserve the keyword sections and comparison table.
+*   **Audit logging docs live in three places**: `docs/audit_logging.md` (in-repo reference), wiki `Audit-Logging.md` (user-facing), and `docs/AI_INSIGHTS.md` (agent memory). Keep all three consistent when audit behavior changes.
+
+## 5. Project Status (as of 2026-02-06)
+*   **Phase 1 complete**: Brain, Intelligence, Body all operational. 211 tests passing.
+*   **Audit logging shipped**: Middleware + route-level logging integrated into both Brain and Intelligence. PM2 config updated with `AUDIT_ENABLED`, `AUDIT_RETENTION_DAYS`, `AUDIT_DEBUG` environment variables.
+*   **Test count**: 211 total (196 existing + 4 middleware + 6 export + 5 integration audit).
+*   **Live-tested**: Uploaded CSV, ran SQL queries, verified audit DB entries, exported signed CSV, confirmed tamper detection. All working.
+*   **Compliance export CLI**: `scripts/audit_export.py` with `export` and `verify` subcommands. Generates CSV + `.sig` + `.meta.json` triplet.
+*   **Next priorities**: Multi-user auth/RBAC, encrypted data at rest, automated compliance reporting, secure key management for HMAC signing.
