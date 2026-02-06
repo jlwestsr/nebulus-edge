@@ -32,10 +32,17 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **Pre-commit hooks**: The project runs end-of-file-fixer, black, flake8, and pytest as pre-commit hooks. If a commit fails on end-of-file-fixer, re-stage the modified files and create a new commit (do not amend).
 
 ## 4. Documentation & Wiki
-*   **GitHub wiki**: Cloned at `../nebulus-edge.wiki/` (sibling directory to the main repo). Wiki uses HTTPS remote — may need SSH or token auth to push. Committed locally even if push fails.
+*   **GitHub wiki**: Cloned at `../nebulus-edge.wiki/` (sibling directory to the main repo). Wiki uses SSH remote (`git@github.com:jlwestsr/nebulus-edge.wiki.git`). Uses `master` branch (GitHub default for wikis).
 *   **Wiki pages**: Home, Audit-Logging, Installation-Guide, Quick-Start, Architecture-Overview. 14 additional pages are linked from Home but not yet created (they serve as a planned outline).
+*   **Ecosystem wikis**: All four project wikis are live and cloned as sibling directories:
+    - `../nebulus-edge.wiki/` — 5 pages (Home, Audit-Logging, Installation-Guide, Quick-Start, Architecture-Overview)
+    - `../nebulus-core.wiki/` — 8 pages (Home, Architecture-Overview, Platform-Adapter-Protocol, Intelligence-Layer, Audit-Logger, Installation-Guide, LLM-Client, Vector-Client)
+    - `../nebulus-gantry.wiki/` — 9 pages (Home, Architecture, Installation, Configuration, Knowledge-Vault, Long-Term-Memory, Admin-Dashboard, API-Reference, Developer-Guide)
+    - `../nebulus-prime.wiki/` — 10 pages (Home, Architecture, Setup-and-Installation, Docker-Services, MCP-Server, CLI-Reference, Models, Development-Guide, Troubleshooting)
+*   **Wiki push pattern**: GitHub wikis must be initialized via the web UI first (create one placeholder page), then you can force-push local content. All wikis use SSH remotes and `master` branch.
 *   **README as SEO surface**: The README is intentionally keyword-rich for GitHub search and Google indexing. It targets industry verticals (healthcare, legal, finance, automotive) and compliance terms (HIPAA, GDPR, CCPA, SOC 2, GLBA, BAA). When editing, preserve the keyword sections and comparison table.
 *   **Audit logging docs live in three places**: `docs/audit_logging.md` (in-repo reference), wiki `Audit-Logging.md` (user-facing), and `docs/AI_INSIGHTS.md` (agent memory). Keep all three consistent when audit behavior changes.
+*   **Cross-project doc sync**: When a feature ships in any Nebulus project, update the corresponding wiki. Wiki repos are independent git repos — commit and push them separately from the main repo.
 
 ## 5. Project Status (as of 2026-02-06)
 *   **Phase 1 complete**: Brain, Intelligence, Body all operational. 211 tests passing.
@@ -43,4 +50,5 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **Test count**: 211 total (196 existing + 4 middleware + 6 export + 5 integration audit).
 *   **Live-tested**: Uploaded CSV, ran SQL queries, verified audit DB entries, exported signed CSV, confirmed tamper detection. All working.
 *   **Compliance export CLI**: `scripts/audit_export.py` with `export` and `verify` subcommands. Generates CSV + `.sig` + `.meta.json` triplet.
+*   **Documentation complete**: README SEO-optimized for healthcare/legal/finance verticals. GitHub wikis created and pushed for all four ecosystem projects (edge, core, gantry, prime). CLAUDE.md and GEMINI.md updated with documentation sync rules.
 *   **Next priorities**: Multi-user auth/RBAC, encrypted data at rest, automated compliance reporting, secure key management for HMAC signing.
