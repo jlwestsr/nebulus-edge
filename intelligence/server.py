@@ -13,8 +13,11 @@ import uvicorn
 from fastapi import FastAPI
 
 from intelligence.api import data, feedback, insights, knowledge, query
+from nebulus_core.intelligence.core.audit import AuditLogger
 from nebulus_core.llm.client import LLMClient
 from nebulus_core.vector.client import VectorClient
+from shared.config.audit_config import AuditConfig
+from shared.middleware.audit_middleware import AuditMiddleware
 
 # Configuration
 BRAIN_URL = os.getenv("BRAIN_URL", "http://localhost:8080")
@@ -25,6 +28,7 @@ DB_PATH = STORAGE_PATH / "databases"
 VECTOR_PATH = STORAGE_PATH / "vectors"
 KNOWLEDGE_PATH = STORAGE_PATH / "knowledge"
 FEEDBACK_PATH = STORAGE_PATH / "feedback"
+AUDIT_PATH = STORAGE_PATH / "audit"
 
 
 @asynccontextmanager
@@ -35,11 +39,20 @@ async def lifespan(app: FastAPI):
     VECTOR_PATH.mkdir(parents=True, exist_ok=True)
     KNOWLEDGE_PATH.mkdir(parents=True, exist_ok=True)
     FEEDBACK_PATH.mkdir(parents=True, exist_ok=True)
+    AUDIT_PATH.mkdir(parents=True, exist_ok=True)
 
     print("Intelligence service starting...")
     print(f"  Template: {TEMPLATE}")
     print(f"  Brain URL: {BRAIN_URL}")
     print(f"  Storage: {STORAGE_PATH}")
+
+    # Initialize audit logging
+    audit_config = AuditConfig.from_env()
+    audit_db_path = AUDIT_PATH / "audit.db"
+    audit_logger = AuditLogger(db_path=audit_db_path)
+
+    print(f"  Audit logging: {'enabled' if audit_config.enabled else 'disabled'}")
+    print(f"  Audit retention: {audit_config.retention_days} days")
 
     # Store config in app state for access by routes
     app.state.template = TEMPLATE
@@ -47,6 +60,8 @@ async def lifespan(app: FastAPI):
     app.state.vector_path = VECTOR_PATH
     app.state.knowledge_path = KNOWLEDGE_PATH
     app.state.feedback_path = FEEDBACK_PATH
+    app.state.audit_logger = audit_logger
+    app.state.audit_config = audit_config
 
     # Create shared core clients
     app.state.llm = LLMClient(base_url=BRAIN_URL)
@@ -67,6 +82,15 @@ app = FastAPI(
     description="Multi-source data intelligence with domain knowledge",
     version="0.1.0",
     lifespan=lifespan,
+)
+
+# Add audit middleware
+audit_config = AuditConfig.from_env()
+app.add_middleware(
+    AuditMiddleware,
+    enabled=audit_config.enabled,
+    debug=audit_config.debug,
+    default_user="appliance-admin",
 )
 
 # Register routers

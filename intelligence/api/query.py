@@ -3,11 +3,14 @@
 Handles natural language questions and SQL execution.
 """
 
+import hashlib
+from datetime import datetime
 from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 
+from nebulus_core.intelligence.core.audit import AuditEvent, AuditEventType
 from nebulus_core.intelligence.core.classifier import QuestionClassifier
 from nebulus_core.intelligence.core.knowledge import KnowledgeManager
 from nebulus_core.intelligence.core.orchestrator import IntelligenceOrchestrator
@@ -98,6 +101,56 @@ def _get_orchestrator(request: Request) -> IntelligenceOrchestrator:
     )
 
 
+def _audit_log_query_operation(
+    request: Request,
+    event_type: AuditEventType,
+    query: str,
+    action: str,
+    details: dict,
+    success: bool,
+    error: Optional[str] = None,
+):
+    """Helper to log query operations to audit log."""
+    if not hasattr(request.app.state, "audit_logger"):
+        return
+    if not request.app.state.audit_config.enabled:
+        return
+
+    audit_logger = request.app.state.audit_logger
+
+    # Extract context from middleware
+    user_id = getattr(request.state, "user_id", "unknown")
+    session_id = getattr(request.state, "session_id", None)
+    ip_address = getattr(request.state, "ip_address", None)
+    request_hash = getattr(request.state, "request_hash", None)
+    response_hash = getattr(request.state, "response_hash", None)
+
+    # Hash the query to avoid logging sensitive data
+    query_hash = hashlib.sha256(query.encode()).hexdigest()
+
+    # Add hashes to details
+    audit_details = {**details, "query_hash": query_hash}
+    if request_hash:
+        audit_details["request_hash"] = request_hash
+    if response_hash:
+        audit_details["response_hash"] = response_hash
+
+    # Create and log audit event
+    event = AuditEvent(
+        event_type=event_type,
+        timestamp=datetime.now(),
+        user_id=user_id,
+        session_id=session_id,
+        ip_address=ip_address,
+        resource="query",
+        action=action,
+        details=audit_details,
+        success=success,
+        error_message=error,
+    )
+    audit_logger.log(event)
+
+
 @router.post("/ask", response_model=IntelligenceResponse)
 def ask_question(
     request: Request,
@@ -123,6 +176,20 @@ def ask_question(
         # Use simple rule-based classification for faster response
         result = orchestrator.ask(body.question, use_simple_classification=True)
 
+        # Log successful query
+        _audit_log_query_operation(
+            request=request,
+            event_type=AuditEventType.QUERY_NATURAL,
+            query=body.question,
+            action="ask_question",
+            details={
+                "classification": result.classification,
+                "sql_used": bool(result.sql_used),
+                "rows_returned": len(result.supporting_data or []),
+            },
+            success=True,
+        )
+
         return IntelligenceResponse(
             answer=result.answer,
             supporting_data=result.supporting_data,
@@ -134,6 +201,17 @@ def ask_question(
         )
 
     except Exception as e:
+        # Log failed query
+        _audit_log_query_operation(
+            request=request,
+            event_type=AuditEventType.QUERY_NATURAL,
+            query=body.question,
+            action="ask_question",
+            details={},
+            success=False,
+            error=str(e),
+        )
+
         return IntelligenceResponse(
             answer=f"I encountered an error processing your question: {str(e)}",
             reasoning="The query could not be completed.",
@@ -155,6 +233,17 @@ def execute_sql(
 
     try:
         result = sql_engine.execute(body.sql, safe=True)
+
+        # Log successful SQL execution
+        _audit_log_query_operation(
+            request=request,
+            event_type=AuditEventType.QUERY_SQL,
+            query=body.sql,
+            action="execute_sql",
+            details={"rows_returned": result.row_count},
+            success=True,
+        )
+
         return SQLResponse(
             columns=result.columns,
             rows=result.rows,
@@ -162,8 +251,28 @@ def execute_sql(
             sql=result.sql,
         )
     except UnsafeQueryError as e:
+        # Log unsafe query attempt
+        _audit_log_query_operation(
+            request=request,
+            event_type=AuditEventType.QUERY_SQL,
+            query=body.sql,
+            action="execute_sql",
+            details={},
+            success=False,
+            error=f"Unsafe query: {str(e)}",
+        )
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
+        # Log failed query
+        _audit_log_query_operation(
+            request=request,
+            event_type=AuditEventType.QUERY_SQL,
+            query=body.sql,
+            action="execute_sql",
+            details={},
+            success=False,
+            error=str(e),
+        )
         raise HTTPException(status_code=500, detail=f"Query failed: {str(e)}")
 
 
@@ -217,6 +326,7 @@ def find_similar(
             record_id=body.record_id,
             n_results=body.limit,
         )
+        query_str = f"record_id:{body.record_id}"
     elif body.query:
         # Search by natural language query
         results = vector_engine.search_similar(
@@ -224,11 +334,25 @@ def find_similar(
             query=body.query,
             n_results=body.limit,
         )
+        query_str = body.query
     else:
         raise HTTPException(
             status_code=400,
             detail="Either 'query' or 'record_id' must be provided",
         )
+
+    # Log semantic search
+    _audit_log_query_operation(
+        request=request,
+        event_type=AuditEventType.QUERY_SEMANTIC,
+        query=query_str,
+        action="find_similar",
+        details={
+            "table_name": body.table_name,
+            "rows_returned": len(results),
+        },
+        success=True,
+    )
 
     return [
         SimilarRecordResponse(

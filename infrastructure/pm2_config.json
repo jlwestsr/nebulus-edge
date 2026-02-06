@@ -9,7 +9,10 @@
             "watch": false,
             "max_memory_restart": "4G",
             "env": {
-                "NODE_ENV": "production"
+                "NODE_ENV": "production",
+                "AUDIT_ENABLED": "true",
+                "AUDIT_RETENTION_DAYS": "2555",
+                "AUDIT_DEBUG": "false"
             }
         },
         {
@@ -23,7 +26,10 @@
             "env": {
                 "NODE_ENV": "production",
                 "BRAIN_URL": "http://localhost:8080",
-                "INTELLIGENCE_TEMPLATE": "dealership"
+                "INTELLIGENCE_TEMPLATE": "dealership",
+                "AUDIT_ENABLED": "true",
+                "AUDIT_RETENTION_DAYS": "2555",
+                "AUDIT_DEBUG": "false"
             }
         }
     ]

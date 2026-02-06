@@ -1,10 +1,15 @@
 import time
+from pathlib import Path
+from typing import List, Optional
 
 import uvicorn
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
+from mlx_lm import generate, load
 from pydantic import BaseModel
-from typing import Optional, List
-from mlx_lm import load, generate
+
+from nebulus_core.intelligence.core.audit import AuditEvent, AuditEventType, AuditLogger
+from shared.config.audit_config import AuditConfig
+from shared.middleware.audit_middleware import AuditMiddleware
 
 app = FastAPI(title="Nebulus Edge Brain", version="0.1.0")
 
@@ -20,6 +25,8 @@ MODELS = {
 current_model_name = None
 model_instance = None
 tokenizer_instance = None
+audit_logger = None
+audit_config = None
 
 
 class ChatMessage(BaseModel):
@@ -92,8 +99,84 @@ def _warmup_model():
     print("Model warmed up and ready.")
 
 
+def _audit_log_completion(
+    http_request: Request,
+    model: str,
+    message_count: int,
+    prompt_length: int,
+    response_length: int,
+    max_tokens: int,
+    temperature: float,
+    duration_ms: float,
+    success: bool,
+    error: Optional[str] = None,
+):
+    """Log LLM completion to audit log."""
+    if not audit_logger:
+        return
+
+    # Extract context from middleware
+    user_id = getattr(http_request.state, "user_id", "unknown")
+    session_id = getattr(http_request.state, "session_id", None)
+    ip_address = getattr(http_request.state, "ip_address", None)
+    request_hash = getattr(http_request.state, "request_hash", None)
+    response_hash = getattr(http_request.state, "response_hash", None)
+
+    # Build details
+    details = {
+        "model": model,
+        "message_count": message_count,
+        "prompt_length": prompt_length,
+        "response_length": response_length,
+        "max_tokens": max_tokens,
+        "temperature": temperature,
+        "duration_ms": duration_ms,
+    }
+    if request_hash:
+        details["request_hash"] = request_hash
+    if response_hash:
+        details["response_hash"] = response_hash
+
+    # Create and log audit event
+    from datetime import datetime
+
+    event = AuditEvent(
+        event_type=AuditEventType.QUERY_NATURAL,
+        timestamp=datetime.now(),
+        user_id=user_id,
+        session_id=session_id,
+        ip_address=ip_address,
+        resource="chat_completion",
+        action="generate",
+        details=details,
+        success=success,
+        error_message=error,
+    )
+    audit_logger.log(event)
+
+
 @app.on_event("startup")
 def startup_event():
+    global audit_logger, audit_config
+
+    # Initialize audit logging
+    audit_config = AuditConfig.from_env()
+    audit_path = Path(__file__).parent / "audit"
+    audit_path.mkdir(parents=True, exist_ok=True)
+    audit_db_path = audit_path / "audit.db"
+    audit_logger = AuditLogger(db_path=audit_db_path)
+
+    print(f"Audit logging: {'enabled' if audit_config.enabled else 'disabled'}")
+    print(f"Audit retention: {audit_config.retention_days} days")
+
+    # Add audit middleware
+    app.add_middleware(
+        AuditMiddleware,
+        enabled=audit_config.enabled,
+        debug=audit_config.debug,
+        default_user="appliance-admin",
+    )
+
     load_model_by_name("default-model")
     _warmup_model()
 
@@ -126,7 +209,7 @@ def list_models():
 
 
 @app.post("/v1/chat/completions")
-def chat_completions(request: ChatCompletionRequest):
+def chat_completions(http_request: Request, request: ChatCompletionRequest):
     # Check if we need to switch models
     requested_model = request.model.lower()
     if requested_model not in MODELS:
@@ -165,6 +248,7 @@ def chat_completions(request: ChatCompletionRequest):
                 prompt += f"<|im_start|>assistant\n{content}<|im_end|>\n"
         prompt += "<|im_start|>assistant\n"
 
+    start_time = time.time()
     try:
         response_text = generate(
             model_instance,
@@ -173,10 +257,43 @@ def chat_completions(request: ChatCompletionRequest):
             max_tokens=request.max_tokens,
             verbose=True,
         )
+
+        # Log successful completion
+        if audit_logger and audit_config and audit_config.enabled:
+            duration_ms = (time.time() - start_time) * 1000
+            _audit_log_completion(
+                http_request,
+                model=request.model,
+                message_count=len(request.messages),
+                prompt_length=len(prompt),
+                response_length=len(response_text),
+                max_tokens=request.max_tokens,
+                temperature=request.temperature,
+                duration_ms=duration_ms,
+                success=True,
+            )
+
     except Exception as e:
         import traceback
 
         traceback.print_exc()
+
+        # Log failed completion
+        if audit_logger and audit_config and audit_config.enabled:
+            duration_ms = (time.time() - start_time) * 1000
+            _audit_log_completion(
+                http_request,
+                model=request.model,
+                message_count=len(request.messages),
+                prompt_length=len(prompt),
+                response_length=0,
+                max_tokens=request.max_tokens,
+                temperature=request.temperature,
+                duration_ms=duration_ms,
+                success=False,
+                error=str(e),
+            )
+
         raise HTTPException(status_code=500, detail=str(e))
 
     return {

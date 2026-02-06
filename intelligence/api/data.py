@@ -3,12 +3,14 @@
 Handles CSV upload, table management, and schema operations.
 """
 
+from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
 from fastapi import APIRouter, File, HTTPException, Request, UploadFile
 from pydantic import BaseModel
 
+from nebulus_core.intelligence.core.audit import AuditEvent, AuditEventType
 from nebulus_core.intelligence.core.ingest import DataIngestor
 from nebulus_core.intelligence.core.pii import PIIDetector
 from nebulus_core.intelligence.core.vector_engine import VectorEngine
@@ -78,6 +80,53 @@ def _get_ingestor(request: Request) -> DataIngestor:
     return DataIngestor(db_path, pii_detector, vector_engine, template)
 
 
+def _audit_log_data_operation(
+    request: Request,
+    event_type: AuditEventType,
+    table_name: str,
+    action: str,
+    details: dict,
+    success: bool,
+    error: Optional[str] = None,
+):
+    """Helper to log data operations to audit log."""
+    if not hasattr(request.app.state, "audit_logger"):
+        return
+    if not request.app.state.audit_config.enabled:
+        return
+
+    audit_logger = request.app.state.audit_logger
+
+    # Extract context from middleware
+    user_id = getattr(request.state, "user_id", "unknown")
+    session_id = getattr(request.state, "session_id", None)
+    ip_address = getattr(request.state, "ip_address", None)
+    request_hash = getattr(request.state, "request_hash", None)
+    response_hash = getattr(request.state, "response_hash", None)
+
+    # Add hashes to details
+    audit_details = {**details}
+    if request_hash:
+        audit_details["request_hash"] = request_hash
+    if response_hash:
+        audit_details["response_hash"] = response_hash
+
+    # Create and log audit event
+    event = AuditEvent(
+        event_type=event_type,
+        timestamp=datetime.now(),
+        user_id=user_id,
+        session_id=session_id,
+        ip_address=ip_address,
+        resource=table_name,
+        action=action,
+        details=audit_details,
+        success=success,
+        error_message=error,
+    )
+    audit_logger.log(event)
+
+
 @router.post("/upload", response_model=IngestResult)
 async def upload_csv(
     request: Request,
@@ -122,6 +171,36 @@ async def upload_csv(
             columns_with_pii=result.pii_columns,
             records_affected=result.pii_report.records_with_pii,
             types_found=[t.value for t in result.pii_report.pii_by_type.keys()],
+        )
+
+    # Log data upload to audit
+    _audit_log_data_operation(
+        request=request,
+        event_type=AuditEventType.DATA_UPLOAD,
+        table_name=result.table_name,
+        action="upload_csv",
+        details={
+            "rows_imported": result.rows_imported,
+            "columns": result.columns,
+            "records_embedded": result.records_embedded,
+            "pii_detected": result.pii_detected,
+        },
+        success=True,
+    )
+
+    # Log PII detection if found
+    if result.pii_detected and pii_summary:
+        _audit_log_data_operation(
+            request=request,
+            event_type=AuditEventType.PII_DETECTED,
+            table_name=result.table_name,
+            action="pii_detection",
+            details={
+                "pii_types": pii_summary.types_found,
+                "records_affected": pii_summary.records_affected,
+                "columns_with_pii": pii_summary.columns_with_pii,
+            },
+            success=True,
         )
 
     return IngestResult(
@@ -199,7 +278,26 @@ async def delete_table(request: Request, table_name: str) -> dict:
     ingestor = _get_ingestor(request)
 
     if not ingestor.delete_table(table_name):
+        _audit_log_data_operation(
+            request=request,
+            event_type=AuditEventType.DATA_DELETE,
+            table_name=table_name,
+            action="delete_table",
+            details={},
+            success=False,
+            error=f"Table '{table_name}' not found",
+        )
         raise HTTPException(status_code=404, detail=f"Table '{table_name}' not found")
+
+    # Log successful deletion
+    _audit_log_data_operation(
+        request=request,
+        event_type=AuditEventType.DATA_DELETE,
+        table_name=table_name,
+        action="delete_table",
+        details={},
+        success=True,
+    )
 
     return {"status": "deleted", "table_name": table_name}
 

@@ -7,7 +7,14 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 
 *   **Artifacts**: Always update `task.md` before tool calls when starting a new phase.
 *   **Three-service architecture**: Brain (LLM, port 8080), Intelligence (data analytics, port 8081), Body (Open WebUI, port 3000). All PM2-managed services are defined in `infrastructure/pm2_config.json`.
-*   **Intelligence service**: FastAPI server at `intelligence/server.py`, started via `python -m intelligence.server`. Uses `intelligence/storage/` for runtime data (databases, vectors, knowledge, feedback) — this directory is gitignored.
+*   **Intelligence service**: FastAPI server at `intelligence/server.py`, started via `python -m intelligence.server`. Uses `intelligence/storage/` for runtime data (databases, vectors, knowledge, feedback, audit) — this directory is gitignored.
+*   **Audit logging architecture**:
+    - **Middleware + Dependency Injection hybrid**: AuditMiddleware enriches all requests with context (user_id, IP, session_id, request/response SHA-256 hashes) — cannot be bypassed. Routes explicitly log business operations with domain context.
+    - **Separate audit databases**: `brain/audit/audit.db` and `intelligence/storage/audit/audit.db` — services are independent with different lifecycles
+    - **SHA-256 hashing strategy**: Full request/response bodies hashed for integrity verification without storing sensitive data (except in AUDIT_DEBUG mode)
+    - **7-year retention**: Default AUDIT_RETENTION_DAYS=2555 for HIPAA compliance
+    - **Performance impact**: <10ms overhead per request (UUID generation, SHA-256, SQLite insert)
+    - **Export/verification**: `scripts/audit_export.py` generates signed CSV exports with HMAC-SHA256 for tamper detection
 
 ## 2. Recurring Pitfalls
 *   **Testing**: Do not assume tests pass; always checking logs.
