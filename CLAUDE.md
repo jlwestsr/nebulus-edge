@@ -104,6 +104,20 @@ Update `docs/AI_INSIGHTS.md` when encountering:
 - Recurring pitfalls
 - Architectural constraints
 
+## Documentation (Keep In Sync)
+
+Three public-facing documentation surfaces must stay consistent:
+
+1. **README.md** — Primary landing page. SEO-optimized for GitHub search and Google indexing. Contains keyword-rich sections targeting healthcare, legal, finance, and automotive verticals. **Preserve the SEO keyword sections and comparison table when editing.**
+2. **GitHub Wiki** — User-facing guides at `https://github.com/jlwestsr/nebulus-edge/wiki`. Cloned locally at `../nebulus-edge.wiki/` (sibling to main repo, SSH remote). Pages: Home, Installation-Guide, Quick-Start, Architecture-Overview, Audit-Logging.
+3. **docs/audit_logging.md** — In-repo reference for audit system internals.
+
+**Rules:**
+- When a feature ships or behavior changes, update all three locations.
+- The wiki repo is separate from the main repo — commit and push it independently (`cd ../nebulus-edge.wiki && git add . && git commit && git push origin master`).
+- README changes go through normal develop branch workflow.
+- Wiki uses `master` branch (GitHub default for wikis), not `develop`.
+
 ## Dependencies
 Main: `requirements.txt`
 Brain-specific: `brain/requirements.txt` (includes `mlx-lm`)
