@@ -9,11 +9,18 @@ A privacy-first AI appliance for small businesses handling sensitive data. Run p
 
 Nebulus Edge is designed for professionals who need AI capabilities but cannot send data to the cloud:
 - **Car dealerships** analyzing inventory and sales
-- **Medical practices** reviewing patient data
-- **Law firms** processing case documents
+- **Medical practices** reviewing patient data (HIPAA-compliant audit logging)
+- **Law firms** processing case documents (attorney-client privilege protection)
 - **Accountants** examining financial records
 
 **Key Value Proposition:** Customer owns the hardware. Data never leaves the box.
+
+### Compliance Features
+
+- ✅ **HIPAA-Ready Audit Logging**: 7-year retention, tamper-proof exports, SHA-256 integrity verification
+- ✅ **PII Detection**: Automatic detection and logging of sensitive data access
+- ✅ **User Tracking**: Session-level accountability with IP addresses and timestamps
+- ✅ **Signed Exports**: HMAC-SHA256 signatures for compliance reporting
 
 ## Architecture
 
@@ -141,19 +148,33 @@ curl -X POST http://localhost:8080/v1/chat/completions \
 nebulus-edge/
 ├── brain/                  # LLM server (FastAPI + MLX)
 │   ├── server.py           # Main API server
+│   ├── audit/              # Audit logs (auto-created)
 │   └── requirements.txt    # Brain-specific dependencies
+├── intelligence/           # Data analytics service
+│   ├── server.py           # Intelligence API server
+│   ├── api/                # API routes (data, query, knowledge)
+│   └── storage/            # Runtime data (databases, vectors, audit logs)
 ├── body/                   # Open WebUI configuration
 │   └── docker-compose.yml  # Docker setup
+├── shared/                 # Shared modules
+│   ├── middleware/         # Audit middleware
+│   ├── config/             # Configuration (audit, etc.)
+│   └── audit/              # Audit export utilities
 ├── infrastructure/         # Deployment configuration
 │   ├── pm2_config.json     # PM2 process config
 │   ├── start_brain.sh      # Brain startup script
-│   └── start_body.sh       # Body startup script
+│   └── start_intelligence.sh # Intelligence startup script
+├── scripts/                # Utility scripts
+│   └── audit_export.py     # Compliance export/verification tool
 ├── ansible/                # Ansible playbooks and roles
 ├── docs/                   # Documentation
 │   ├── AI_INSIGHTS.md      # Long-term memory for agents
+│   ├── audit_logging.md    # Audit system documentation
 │   ├── features/           # Feature specifications
 │   └── plans/              # Design documents
-├── tests/                  # Test suite
+├── tests/                  # Test suite (211 tests)
+│   ├── integration/        # Integration tests
+│   └── test_audit_*.py     # Audit logging tests
 ├── CLAUDE.md               # AI agent project context
 ├── AI_DIRECTIVES.md        # Operational rules
 └── WORKFLOW.md             # Development workflow
@@ -222,12 +243,20 @@ black .
 
 ## Roadmap
 
+### Phase 1: Core Platform ✓
 - [x] Brain: Multi-model support with MLX
 - [x] Brain: Model warmup for fast first response
 - [x] Body: Open WebUI integration
 - [x] Intelligence: Multi-source CSV data analysis
 - [x] Intelligence: Domain knowledge layer
 - [x] Intelligence: Strategic recommendations
+- [x] **Audit Logging: HIPAA-compliant audit system with 7-year retention**
+
+### Phase 2: Enterprise Features (Planned)
+- [ ] Multi-user authentication and authorization
+- [ ] Role-based access control (RBAC)
+- [ ] Encrypted data at rest
+- [ ] Automated compliance reporting
 
 ## Related Projects
 
