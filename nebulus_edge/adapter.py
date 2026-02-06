@@ -69,7 +69,9 @@ class EdgeAdapter:
         """Start all platform services via PM2."""
         import subprocess
 
-        subprocess.run(["pm2", "start", "ecosystem.config.js"], check=True)
+        subprocess.run(
+            ["pm2", "start", "infrastructure/pm2_config.json"], check=True
+        )
 
     def stop_services(self) -> None:
         """Stop all platform services via PM2."""
