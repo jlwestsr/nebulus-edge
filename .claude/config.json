@@ -1,0 +1,71 @@
+{
+  "project": "nebulus-edge",
+  "description": "macOS deployment — bare-metal MLX, PM2, Apple Silicon",
+  "mcpServers": {
+    "pyright-lsp": {
+      "disabled": false,
+      "priority": "high",
+      "reason": "Type checking for CLI and services"
+    },
+    "serena": {
+      "disabled": false,
+      "priority": "high",
+      "reason": "Navigate codebase"
+    },
+    "context7": {
+      "disabled": false,
+      "priority": "medium",
+      "reason": "Docs for MLX, PM2, ChromaDB"
+    },
+    "superpowers": {
+      "disabled": false,
+      "priority": "high",
+      "reason": "TDD and debugging workflows"
+    },
+    "pr-review-toolkit": {
+      "disabled": false,
+      "priority": "medium",
+      "reason": "Code quality checks"
+    },
+    "commit-commands": {
+      "disabled": false,
+      "priority": "medium",
+      "reason": "Git workflow automation"
+    },
+    "feature-dev": {
+      "disabled": false,
+      "priority": "medium",
+      "reason": "Feature development workflows"
+    },
+    "github": {
+      "disabled": false,
+      "priority": "medium",
+      "reason": "Release management and wiki"
+    },
+    "typescript-lsp": {
+      "disabled": true,
+      "reason": "No TypeScript"
+    },
+    "playwright": {
+      "disabled": true,
+      "reason": "No UI"
+    },
+    "supabase": {
+      "disabled": true,
+      "reason": "Not using Supabase"
+    },
+    "ralph-loop": {
+      "disabled": true,
+      "reason": "No automation loops"
+    }
+  },
+  "projectSettings": {
+    "language": "Python",
+    "version": "3.10+",
+    "type": "cli-backend",
+    "platform": "macOS",
+    "deployment": "PM2",
+    "lsp": "pyright",
+    "testFramework": "pytest"
+  }
+}

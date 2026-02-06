@@ -34,3 +34,10 @@ intelligence/storage/
 # Aider / LLM tools
 .aider*
 !.aider.conf.yml
+
+# Claude Code - ignore cache but commit config
+.claude/cache/
+.claude/logs/
+.claude/tmp/
+.claude/agents/
+# Commit: .claude/config.json, .claude/README.md

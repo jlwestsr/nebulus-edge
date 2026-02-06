@@ -1,0 +1,35 @@
+{
+  "include": [
+    "nebulus_edge",
+    "intelligence"
+  ],
+  "exclude": [
+    "**/__pycache__",
+    "**/.pytest_cache",
+    "**/.mypy_cache",
+    "**/venv",
+    "**/.venv",
+    "**/_build",
+    "**/dist",
+    "**/build",
+    "**/models",
+    "**/data"
+  ],
+  "typeCheckingMode": "basic",
+  "reportMissingImports": true,
+  "reportMissingTypeStubs": false,
+  "pythonVersion": "3.10",
+  "pythonPlatform": "Darwin",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "pythonVersion": "3.10",
+      "extraPaths": [
+        "nebulus_edge",
+        "intelligence"
+      ]
+    }
+  ],
+  "venvPath": ".",
+  "venv": ".venv"
+}
