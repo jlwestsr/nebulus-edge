@@ -43,6 +43,13 @@ class TestEdgeAdapter:
         adapter = EdgeAdapter()
         assert isinstance(adapter.data_dir, Path)
 
+    def test_mcp_settings(self):
+        """Test mcp_settings returns a dict with server_name."""
+        adapter = EdgeAdapter()
+        settings = adapter.mcp_settings
+        assert isinstance(settings, dict)
+        assert "server_name" in settings
+
     def test_services(self):
         """Test services returns a list of ServiceInfo."""
         adapter = EdgeAdapter()

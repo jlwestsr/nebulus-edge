@@ -20,7 +20,7 @@ dependencies = [
 edge = "nebulus_edge.adapter:EdgeAdapter"
 
 [tool.setuptools.packages.find]
-include = ["nebulus_edge", "nebulus_edge.*", "intelligence", "intelligence.*"]
+include = ["nebulus_edge", "nebulus_edge.*", "intelligence", "intelligence.api", "intelligence.api.*"]
 
 # --- Black Configuration ---
 [tool.black]

@@ -48,6 +48,14 @@ class EdgeAdapter:
         )
 
     @property
+    def mcp_settings(self) -> dict:
+        """MCP server configuration for Edge platform."""
+        return {
+            "workspace_path": Path(__file__).parent.parent,
+            "server_name": "Nebulus Edge Tools",
+        }
+
+    @property
     def services(self) -> list[ServiceInfo]:
         """All services managed by this platform."""
         return [
