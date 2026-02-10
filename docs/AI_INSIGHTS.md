@@ -8,6 +8,8 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **Artifacts**: Always update `task.md` before tool calls when starting a new phase.
 *   **Three-service architecture**: Brain (LLM, port 8080), Intelligence (data analytics, port 8081), Body (Open WebUI, port 3000). All PM2-managed services are defined in `infrastructure/pm2_config.json`.
 *   **Intelligence service**: FastAPI server at `intelligence/server.py`, started via `python -m intelligence.server`. Uses `intelligence/storage/` for runtime data (databases, vectors, knowledge, feedback, audit) — this directory is gitignored.
+*   **No re-export shims**: `intelligence/core/` and `intelligence/templates/` were removed (2026-02-09) — they were dead re-exports of `nebulus_core` with zero consumers. All code should import directly from `nebulus_core.intelligence.*`, not from local `intelligence.*` sub-packages. The `intelligence.api` package is the only legitimate sub-package under `intelligence/`.
+*   **EdgeAdapter protocol compliance**: `nebulus_edge/adapter.py` fully implements `PlatformAdapter` including `mcp_settings`. The entry point is registered in `pyproject.toml` under `[project.entry-points."nebulus.platform"]`.
 *   **Audit logging architecture**:
     - **Middleware + Dependency Injection hybrid**: AuditMiddleware enriches all requests with context (user_id, IP, session_id, request/response SHA-256 hashes) — cannot be bypassed. Routes explicitly log business operations with domain context.
     - **Separate audit databases**: `brain/audit/audit.db` and `intelligence/storage/audit/audit.db` — services are independent with different lifecycles
@@ -45,12 +47,13 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **Cross-project doc sync**: When a feature ships in any Nebulus project, update the corresponding wiki. Wiki repos are independent git repos — commit and push them separately from the main repo.
 
 ## 5. Project Status (as of 2026-02-06)
-*   **Phase 1 complete**: Brain, Intelligence, Body all operational. 211 tests passing.
+*   **Phase 1 complete**: Brain, Intelligence, Body all operational.
 *   **Audit logging shipped**: Middleware + route-level logging integrated into both Brain and Intelligence. PM2 config updated with `AUDIT_ENABLED`, `AUDIT_RETENTION_DAYS`, `AUDIT_DEBUG` environment variables.
 *   **Test count**: 211 total (196 existing + 4 middleware + 6 export + 5 integration audit).
 *   **Live-tested**: Uploaded CSV, ran SQL queries, verified audit DB entries, exported signed CSV, confirmed tamper detection. All working.
 *   **Compliance export CLI**: `scripts/audit_export.py` with `export` and `verify` subcommands. Generates CSV + `.sig` + `.meta.json` triplet.
 *   **Documentation complete**: README SEO-optimized for healthcare/legal/finance verticals. GitHub wikis created and pushed for all four ecosystem projects (edge, core, gantry, prime). CLAUDE.md and GEMINI.md updated with documentation sync rules.
+*   **Core refactoring complete (2026-02-09)**: EdgeAdapter now fully implements the PlatformAdapter protocol (added missing `mcp_settings` property). Removed dead re-export shims (`intelligence/core/__init__.py`, `intelligence/templates/__init__.py`) — nothing in the codebase imported from them. Updated `pyproject.toml` package discovery to match. 212 tests passing.
 *   **Next priorities**: Multi-user auth/RBAC, encrypted data at rest, automated compliance reporting, secure key management for HMAC signing.
 
 ## 6. Session Notes (2026-02-06 Continued) — Ecosystem Wiki Rollout
