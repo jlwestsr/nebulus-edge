@@ -81,3 +81,27 @@ This document serves as the **Long-Term Memory** for AI agents working on **Nebu
 *   **nebulus-gantry had a parallel documentation session** that expanded the wiki from 9 to 20 pages with extensive SEO work. The gantry AI_INSIGHTS.md (sections 10-11) documents this thoroughly.
 *   **nebulus-prime README links old wiki URL** (`github.com/jlwestsr/nebulus/wiki` instead of `github.com/jlwestsr/nebulus-prime/wiki`). Flagged in prime's AI_INSIGHTS but not yet fixed.
 *   **All projects now have consistent AI instruction file pattern**: CLAUDE.md (project context), GEMINI.md (Gemini-specific), AI_INSIGHTS.md (long-term memory). This was already established in prime; now documented in edge's CLAUDE.md and GEMINI.md as well.
+
+## 7. Session Notes (2026-02-09) — Core Refactoring
+
+### Work Completed
+
+*   **Added `mcp_settings` property to EdgeAdapter** (`nebulus_edge/adapter.py`) — completes PlatformAdapter protocol compliance. Returns workspace path and server name for MCP integration.
+*   **Deleted dead re-export shims**:
+    - `intelligence/core/__init__.py` — re-exported 17 symbols from `nebulus_core.intelligence.core`, zero consumers
+    - `intelligence/templates/__init__.py` — re-exported 3 symbols from `nebulus_core.intelligence.templates`, zero consumers
+    - Both directories removed entirely
+*   **Updated `pyproject.toml`** — changed package discovery from `intelligence.*` (wildcard) to explicit `intelligence.api, intelligence.api.*` since the sub-packages are gone.
+*   **Added `test_mcp_settings`** to `tests/test_adapter.py` — validates the new property returns a dict with `server_name`.
+*   **All 212 tests passing** (up from 211 — new `test_mcp_settings` added).
+*   **Updated AI_INSIGHTS.md** — added architectural notes on shim removal and adapter compliance to sections 1 and 5.
+
+### Key Decisions
+
+*   **`brain/` and `intelligence/api/` are NOT dead code** — they are legitimate Edge-specific services (MLX server, FastAPI routes) that correctly import from `nebulus_core`. Only the re-export shims in `intelligence/core/` and `intelligence/templates/` were dead.
+*   **`mcp_settings` uses relative path** — `Path(__file__).parent.parent` resolves to the project root, keeping it portable across machines.
+
+### Commits
+
+*   `33f725a` — `refactor: add mcp_settings to EdgeAdapter and remove dead re-export shims`
+*   `47efc8c` — `docs: update AI_INSIGHTS.md with core refactoring notes`
