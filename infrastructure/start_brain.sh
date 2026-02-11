@@ -20,8 +20,9 @@ fi
 echo "Installing dependencies..."
 pip install -r "$BRAIN_DIR/requirements.txt"
 
+# Ensure project root is on PYTHONPATH so shared/ is importable
+export PYTHONPATH="$PROJECT_ROOT:${PYTHONPATH:-}"
+
 # Start the server
 echo "Starting Brain Server..."
-# Using python -m to run the server script directly since it has a __main__ block
-# Alternatively could use uvicorn brain.server:app --host 0.0.0.0 --port 8080
 python "$BRAIN_DIR/server.py"

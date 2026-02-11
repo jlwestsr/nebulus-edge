@@ -13,6 +13,15 @@ from shared.middleware.audit_middleware import AuditMiddleware
 
 app = FastAPI(title="Nebulus Edge Brain", version="0.1.0")
 
+# Audit middleware must be registered before app starts (not in startup event)
+_boot_audit_config = AuditConfig.from_env()
+app.add_middleware(
+    AuditMiddleware,
+    enabled=_boot_audit_config.enabled,
+    debug=_boot_audit_config.debug,
+    default_user="appliance-admin",
+)
+
 # Model Configuration
 MODELS = {
     "default-model": "mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit",
@@ -169,14 +178,6 @@ def startup_event():
     print(f"Audit logging: {'enabled' if audit_config.enabled else 'disabled'}")
     print(f"Audit retention: {audit_config.retention_days} days")
 
-    # Add audit middleware
-    app.add_middleware(
-        AuditMiddleware,
-        enabled=audit_config.enabled,
-        debug=audit_config.debug,
-        default_user="appliance-admin",
-    )
-
     load_model_by_name("default-model")
     _warmup_model()
 
@@ -209,7 +210,9 @@ def list_models():
 
 
 @app.post("/v1/chat/completions")
-def chat_completions(http_request: Request, request: ChatCompletionRequest):
+def chat_completions(  # noqa: C901
+    http_request: Request, request: ChatCompletionRequest
+):
     # Check if we need to switch models
     requested_model = request.model.lower()
     if requested_model not in MODELS:
