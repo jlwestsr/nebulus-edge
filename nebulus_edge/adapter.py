@@ -35,7 +35,9 @@ class EdgeAdapter:
     @property
     def default_model(self) -> str:
         """Default LLM model name for Apple Silicon."""
-        return os.getenv("NEBULUS_MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct")
+        return os.getenv(
+            "NEBULUS_MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"
+        )
 
     @property
     def data_dir(self) -> Path:
@@ -77,9 +79,7 @@ class EdgeAdapter:
         """Start all platform services via PM2."""
         import subprocess
 
-        subprocess.run(
-            ["pm2", "start", "infrastructure/pm2_config.json"], check=True
-        )
+        subprocess.run(["pm2", "start", "infrastructure/pm2_config.json"], check=True)
 
     def stop_services(self) -> None:
         """Stop all platform services via PM2."""
