@@ -31,6 +31,9 @@ models/
 # Intelligence runtime data
 intelligence/storage/
 
+# Audit runtime data
+brain/audit/
+
 # Aider / LLM tools
 .aider*
 !.aider.conf.yml
